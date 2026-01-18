@@ -1,14 +1,13 @@
-"use client";
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Code, FileText, User, Briefcase, Menu, X, 
   Github, Linkedin, ExternalLink, ChevronRight, ChevronDown, Calendar, 
   Tag, LayoutGrid, List, Clock, PlayCircle, Rss, 
   Palette, Moon, Sun, Monitor, Globe, Type, Layers, Box, Folder, ArrowRight,
-  Star, Zap, Flame, Award // Added Icons for Decorators
+  Star, Zap, Flame, Award, Wrench 
 } from 'lucide-react';
 
-// --- 1. DATA STRUCTURE DEFINITIONS (UPDATED) ---
+// --- 1. DATA STRUCTURE DEFINITIONS (UNCHANGED) ---
 interface Article { id: string; title: string; slug: string; excerpt: string; content: string; publishedAt: string; tags: string[]; readTime: string; author: { name: string; avatar: string; }; }
 interface Blog { id: string; title: string; slug: string; summary: string; date: string; category: 'Personal' | 'Lifestyle' | 'DevLog'; coverImage?: string; }
 interface Doc { id: string; title: string; slug: string; section: string; content: string; lastUpdated: string; }
@@ -18,7 +17,6 @@ interface Education { id: string; degree: string; institution: string; year: str
 interface ResumeData { name: string; title: string; summary: string; skills: string[]; experience: Experience[]; education: Education[]; contact: { email: string; location: string; }; }
 interface ExternalVideoData { videoId: string; headline: string; descriptionSnippet: string; published_timestamp: number; thumbnail_high: string; views: number; tags: string[]; }
 
-// UPDATED: Added decorations field for the Pattern
 type DecorationType = 'new' | 'featured' | 'sponsor' | 'hot' | 'popular';
 interface UnifiedContentItem { 
   id: string; 
@@ -29,7 +27,7 @@ interface UnifiedContentItem {
   imageUrl?: string; 
   meta: string[]; 
   actionLink?: string;
-  decorations?: DecorationType[]; // The Decorator Payload
+  decorations?: DecorationType[]; 
 }
 
 // --- 2. MOCK DATA (EXISTING UNCHANGED) ---
@@ -58,40 +56,26 @@ const MOCK_RESUME: ResumeData = {
   contact: { email: 'alex@example.com', location: 'Bangkok' }
 };
 const MOCK_DOCS: Doc[] = [
-  { id: '1', title: 'Getting Started', slug: 'start', section: 'Intro', content: 'Welcome to the documentation. This guide will help you get started with the project installation and basic configuration. \n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', lastUpdated: '2024-01-10' },
-  { id: '2', title: 'Authentication', slug: 'auth', section: 'Core Concepts', content: 'We use JWT for authentication. Here is how you can implement the login flow... \n\nUt enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.', lastUpdated: '2024-02-15' },
-  { id: '3', title: 'Database Schema', slug: 'db', section: 'Core Concepts', content: 'The database consists of 5 main tables: Users, Products, Orders... \n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.', lastUpdated: '2024-03-01' }
+  { id: '1', title: 'Getting Started', slug: 'start', section: 'Intro', content: 'Welcome to the documentation.', lastUpdated: '2024-01-10' },
+  { id: '2', title: 'Authentication', slug: 'auth', section: 'Core Concepts', content: 'We use JWT for authentication.', lastUpdated: '2024-02-15' },
+  { id: '3', title: 'Database Schema', slug: 'db', section: 'Core Concepts', content: 'The database consists of 5 main tables.', lastUpdated: '2024-03-01' }
 ];
 
-// --- 3. ADAPTERS (UPDATED to Map Decorations) ---
-const adaptProjectToUnified = (p: Project): UnifiedContentItem => ({ 
-  id: `proj-${p.id}`, type: 'project', title: p.title, description: p.description, date: p.date, imageUrl: p.thumbnail, meta: p.techStack, actionLink: p.githubUrl,
-  decorations: p.featured ? ['featured'] : [] // Map 'featured' logic to decorator
-});
-const adaptBlogToUnified = (b: Blog): UnifiedContentItem => ({ 
-  id: `blog-${b.id}`, type: 'blog', title: b.title, description: b.summary, date: b.date, imageUrl: b.coverImage, meta: [b.category], actionLink: '#',
-  decorations: b.category === 'DevLog' ? ['new'] : [] // Example logic
-});
-const adaptVideoToUnified = (v: ExternalVideoData): UnifiedContentItem => ({ 
-  id: `vid-${v.videoId}`, type: 'video', title: v.headline, description: v.descriptionSnippet, date: new Date(v.published_timestamp).toISOString().split('T')[0], imageUrl: v.thumbnail_high, meta: [`${v.views} views`], actionLink: '#',
-  decorations: v.views > 10000 ? ['popular', 'hot'] : [] // Example logic
-});
+// --- 3. ADAPTERS (UNCHANGED) ---
+const adaptProjectToUnified = (p: Project): UnifiedContentItem => ({ id: `proj-${p.id}`, type: 'project', title: p.title, description: p.description, date: p.date, imageUrl: p.thumbnail, meta: p.techStack, actionLink: p.githubUrl, decorations: p.featured ? ['featured'] : [] });
+const adaptBlogToUnified = (b: Blog): UnifiedContentItem => ({ id: `blog-${b.id}`, type: 'blog', title: b.title, description: b.summary, date: b.date, imageUrl: b.coverImage, meta: [b.category], actionLink: '#', decorations: b.category === 'DevLog' ? ['new'] : [] });
+const adaptVideoToUnified = (v: ExternalVideoData): UnifiedContentItem => ({ id: `vid-${v.videoId}`, type: 'video', title: v.headline, description: v.descriptionSnippet, date: new Date(v.published_timestamp).toISOString().split('T')[0], imageUrl: v.thumbnail_high, meta: [`${v.views} views`], actionLink: '#', decorations: v.views > 10000 ? ['popular', 'hot'] : [] });
 const adaptArticleToUnified = (a: Article): UnifiedContentItem => ({ id: `art-${a.id}`, type: 'article', title: a.title, description: a.excerpt, date: a.publishedAt, meta: a.tags, actionLink: '#' });
 const adaptDocToUnified = (d: Doc): UnifiedContentItem => ({ id: `doc-${d.id}`, type: 'doc', title: d.title, description: d.content.substring(0, 100) + '...', date: d.lastUpdated, meta: [d.section], actionLink: '#' });
 
-// ==========================================
-// === 1. LOCALIZATION ABSTRACT FACTORY ===
-// ==========================================
-// (UNCHANGED)
+// --- LOCALIZATION & TYPOGRAPHY & STYLE FACTORIES (UNCHANGED) ---
 interface UILabels {
   nav: { home: string; feed: string; projects: string; articles: string; blog: string; docs: string; resume: string; };
   hero: { titlePrefix: string; titleHighlight: string; description: string; btnProjects: string; btnArticles: string; };
   sections: { feed: string; feedDesc: string; projects: string; projectsDesc: string; articles: string; articlesDesc: string; blog: string; blogDesc: string; docs: string; docsDesc: string; resume: string; experience: string; skills: string; education: string; summary: string; };
   actions: { readMore: string; downloadPdf: string; view: string; expand: string; collapse: string; related: string };
 }
-
 interface LocalizationFactory { code: string; getLabels(): UILabels; }
-
 const EnglishLocalization: LocalizationFactory = {
   code: 'EN',
   getLabels: () => ({
@@ -108,7 +92,6 @@ const EnglishLocalization: LocalizationFactory = {
     actions: { readMore: 'Read more', downloadPdf: 'PDF', view: 'View', expand: 'Show Related', collapse: 'Hide Related', related: 'Related Items' }
   })
 };
-
 const ThaiLocalization: LocalizationFactory = {
   code: 'TH',
   getLabels: () => ({
@@ -119,17 +102,13 @@ const ThaiLocalization: LocalizationFactory = {
       projects: 'โปรเจกต์', projectsDesc: 'โปรเจกต์หลักและโมดูลย่อยที่เกี่ยวข้อง',
       articles: 'บทความเชิงลึก', articlesDesc: 'คลิกเพื่ออ่านหรือดูเนื้อหาที่เกี่ยวข้องเพิ่มเติม',
       blog: 'บล็อกส่วนตัว', blogDesc: 'เรื่องราวหลักและเกร็ดเล็กเกร็ดน้อยที่เกี่ยวข้อง',
-      docs: 'เอกสารคู่มือ', docsDesc: 'คู่มือและการอ้างอิงในมุมมองที่มีโครงสร้าง',
+      docs: 'เอกสารคู่มือ', docsDesc: 'คำแนะนำและข้อมูลอ้างอิงในรูปแบบที่เป็นระบบ',
       resume: 'ประวัติย่อ', experience: 'ประสบการณ์ทำงาน', skills: 'ทักษะ', education: 'การศึกษา', summary: 'สรุปข้อมูล'
     },
     actions: { readMore: 'อ่านต่อ', downloadPdf: 'ดาวน์โหลด PDF', view: 'ดู', expand: 'ดูที่เกี่ยวข้อง', collapse: 'ซ่อน', related: 'เนื้อหาที่เกี่ยวข้อง' }
   })
 };
 
-// ==========================================
-// === 2. TYPOGRAPHY & STYLE FACTORIES ===
-// ==========================================
-// (UNCHANGED)
 interface TypographyFactory { name: string; getFontClass(): string; }
 const PrimaryFont: TypographyFactory = { name: 'Sans', getFontClass: () => 'font-sans' };
 const SecondaryFont: TypographyFactory = { name: 'Serif', getFontClass: () => 'font-serif' };
@@ -144,79 +123,53 @@ interface StyleFactory {
   getSectionTitleClass(): string;
   getContainerClass(type: string): string;
 }
-
 const ModernStyle: StyleFactory = {
   name: 'Modern',
   getMainLayoutClass: () => "bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300",
   getCardClass: () => "bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden relative",
-  getButtonClass: (variant) => {
-    if (variant === 'primary') return "px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all";
-    if (variant === 'text') return "px-3 py-1 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all";
-    return "px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all";
-  },
+  getButtonClass: (variant) => { if (variant === 'primary') return "px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all"; if (variant === 'text') return "px-3 py-1 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all"; return "px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"; },
   getNavbarClass: () => "bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50",
   getBadgeClass: () => "px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full",
   getSectionTitleClass: () => "text-3xl font-bold text-gray-900 dark:text-white",
   getContainerClass: (type) => "rounded-2xl p-4 md:p-6 bg-gray-100/50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 backdrop-blur-sm mt-4"
 };
-
 const MinimalStyle: StyleFactory = {
   name: 'Minimal',
   getMainLayoutClass: () => "bg-white dark:bg-black min-h-screen transition-colors duration-300",
   getCardClass: () => "bg-transparent border-b border-gray-200 dark:border-gray-800 py-6 hover:opacity-80 transition-opacity relative",
-  getButtonClass: (variant) => {
-    if (variant === 'primary') return "px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-none uppercase tracking-widest text-xs font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors";
-    if (variant === 'text') return "px-3 py-1 text-black dark:text-white uppercase tracking-wider text-xs font-bold hover:underline transition-all";
-    return "px-6 py-2 bg-transparent text-black dark:text-white border border-black dark:border-white rounded-none uppercase tracking-widest text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors";
-  },
+  getButtonClass: (variant) => { if (variant === 'primary') return "px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-none uppercase tracking-widest text-xs font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"; if (variant === 'text') return "px-3 py-1 text-black dark:text-white uppercase tracking-wider text-xs font-bold hover:underline transition-all"; return "px-6 py-2 bg-transparent text-black dark:text-white border border-black dark:border-white rounded-none uppercase tracking-widest text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"; },
   getNavbarClass: () => "bg-white dark:bg-black border-b-2 border-black dark:border-white sticky top-0 z-50",
   getBadgeClass: () => "px-2 py-1 border border-gray-400 text-gray-600 dark:text-gray-400 text-[10px] uppercase tracking-wider",
   getSectionTitleClass: () => "text-2xl font-normal text-black dark:text-white uppercase tracking-[0.2em]",
   getContainerClass: (type) => "p-0 border-l border-black dark:border-white pl-4 mt-4"
 };
-
 const FutureStyle: StyleFactory = {
   name: 'Future',
   getMainLayoutClass: () => "bg-slate-900 dark:bg-black min-h-screen transition-colors duration-300",
   getCardClass: () => "bg-slate-800/50 dark:bg-gray-900/80 backdrop-blur border border-cyan-500/30 dark:border-cyan-500/50 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300 rounded-none skew-x-[-2deg] relative",
-  getButtonClass: (variant) => {
-    if (variant === 'primary') return "px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold uppercase tracking-wider clip-path-slant hover:brightness-110 transition-all shadow-[0_0_10px_rgba(6,182,212,0.5)]";
-    if (variant === 'text') return "px-3 py-1 text-cyan-400 font-bold uppercase tracking-wider hover:text-cyan-200 hover:shadow-[0_0_10px_rgba(6,182,212,0.3)] transition-all";
-    return "px-6 py-2 bg-transparent text-cyan-400 border border-cyan-500/50 font-bold uppercase tracking-wider hover:bg-cyan-950/30 transition-all";
-  },
+  getButtonClass: (variant) => { if (variant === 'primary') return "px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold uppercase tracking-wider clip-path-slant hover:brightness-110 transition-all shadow-[0_0_10px_rgba(6,182,212,0.5)]"; if (variant === 'text') return "px-3 py-1 text-cyan-400 font-bold uppercase tracking-wider hover:text-cyan-200 hover:shadow-[0_0_10px_rgba(6,182,212,0.3)] transition-all"; return "px-6 py-2 bg-transparent text-cyan-400 border border-cyan-500/50 font-bold uppercase tracking-wider hover:bg-cyan-950/30 transition-all"; },
   getNavbarClass: () => "bg-slate-900/90 border-b border-cyan-500/30 sticky top-0 z-50 shadow-[0_0_20px_rgba(6,182,212,0.15)]",
   getBadgeClass: () => "px-2 py-1 bg-cyan-950/50 text-cyan-400 border border-cyan-500/30 text-xs font-bold uppercase",
   getSectionTitleClass: () => "text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 uppercase italic",
   getContainerClass: (type) => "p-4 border border-cyan-900/50 bg-slate-900/50 mt-4"
 };
-
 const AcademicStyle: StyleFactory = {
   name: 'Academic',
   getMainLayoutClass: () => "bg-[#fdfbf7] dark:bg-[#1a1a1a] min-h-screen transition-colors duration-300",
   getCardClass: () => "bg-white dark:bg-[#2a2a2a] p-1 border border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow relative",
-  getButtonClass: (variant) => {
-    if (variant === 'primary') return "px-5 py-2 bg-[#8b1e3f] dark:bg-[#d4af37] text-white dark:text-black font-serif italic hover:opacity-90 transition-opacity";
-    if (variant === 'text') return "px-3 py-1 text-[#8b1e3f] dark:text-[#d4af37] font-serif italic hover:underline transition-all";
-    return "px-5 py-2 bg-transparent text-[#8b1e3f] dark:text-[#d4af37] border border-[#8b1e3f] dark:border-[#d4af37] font-serif italic hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors";
-  },
+  getButtonClass: (variant) => { if (variant === 'primary') return "px-5 py-2 bg-[#8b1e3f] dark:bg-[#d4af37] text-white dark:text-black font-serif italic hover:opacity-90 transition-opacity"; if (variant === 'text') return "px-3 py-1 text-[#8b1e3f] dark:text-[#d4af37] font-serif italic hover:underline transition-all"; return "px-5 py-2 bg-transparent text-[#8b1e3f] dark:text-[#d4af37] border border-[#8b1e3f] dark:border-[#d4af37] font-serif italic hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"; },
   getNavbarClass: () => "bg-[#fdfbf7] dark:bg-[#1a1a1a] border-b-4 border-double border-gray-300 dark:border-gray-600 sticky top-0 z-50",
   getBadgeClass: () => "px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 text-xs font-serif italic border border-gray-400",
   getSectionTitleClass: () => "text-3xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-gray-300 dark:border-gray-600 pb-2 inline-block",
   getContainerClass: (type) => "p-6 border-2 border-double border-gray-300 dark:border-gray-600 mt-4"
 };
-
 const STYLES: Record<string, StyleFactory> = { 'modern': ModernStyle, 'minimal': MinimalStyle, 'future': FutureStyle, 'academic': AcademicStyle };
 const LOCALES: Record<string, LocalizationFactory> = { 'en': EnglishLocalization, 'th': ThaiLocalization };
 const FONTS: Record<string, TypographyFactory> = { 'sans': PrimaryFont, 'serif': SecondaryFont };
 
-// ==========================================
-// === 3. DECORATOR PATTERN IMPLEMENTATION ===
-// ==========================================
-
-// The Decorator Component: Wraps content and adds "bling" based on decoration props
+// --- DECORATOR COMPONENT (UNCHANGED) ---
 const ContentDecorator = ({ children, decorations, style }: { children: React.ReactNode, decorations?: DecorationType[], style: StyleFactory }) => {
   if (!decorations || decorations.length === 0) return <>{children}</>;
-
   const getDecoratorStyle = (type: DecorationType) => {
     switch (type) {
       case 'new': return 'bg-emerald-500 text-white shadow-emerald-500/30';
@@ -227,7 +180,6 @@ const ContentDecorator = ({ children, decorations, style }: { children: React.Re
       default: return 'bg-gray-500 text-white';
     }
   };
-
   const getIcon = (type: DecorationType) => {
     switch (type) {
       case 'featured': return <Star size={10} fill="currentColor" />;
@@ -238,24 +190,12 @@ const ContentDecorator = ({ children, decorations, style }: { children: React.Re
       default: return null;
     }
   };
-
   return (
     <div className="relative group h-full">
-      {/* The Original Content */}
       {children}
-
-      {/* The Decorations Overlay */}
       <div className={`absolute -top-2 -right-1 flex flex-col items-end gap-1 z-10 pointer-events-none transition-transform duration-300 group-hover:-translate-y-1`}>
         {decorations.map(d => (
-          <span 
-            key={d} 
-            className={`
-              flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold tracking-wider shadow-sm
-              ${getDecoratorStyle(d)}
-              ${style.name === 'Future' ? 'clip-path-slant' : 'rounded-full'}
-              ${style.name === 'Minimal' ? 'border border-black dark:border-white bg-white dark:bg-black text-black dark:text-white' : ''}
-            `}
-          >
+          <span key={d} className={`flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold tracking-wider shadow-sm ${getDecoratorStyle(d)} ${style.name === 'Future' ? 'clip-path-slant' : 'rounded-full'} ${style.name === 'Minimal' ? 'border border-black dark:border-white bg-white dark:bg-black text-black dark:text-white' : ''}`}>
             {getIcon(d)} {d}
           </span>
         ))}
@@ -265,117 +205,103 @@ const ContentDecorator = ({ children, decorations, style }: { children: React.Re
 };
 
 // ==========================================
-// === 4. COMPOSITE PATTERN IMPLEMENTATION ===
+// === 4. COMPOSITE & BUILDER PATTERN IMPLEMENTATION ===
 // ==========================================
 
 type ComponentType = 'container' | 'item';
 type LayoutStyleType = 'grid' | 'list' | 'timeline' | 'column' | 'row';
 
-interface LayoutNode {
-  id: string;
-  type: ComponentType;
+interface LayoutNode { id: string; type: ComponentType; }
+interface LeafNode extends LayoutNode { type: 'item'; data: UnifiedContentItem; }
+interface CompositeNode extends LayoutNode { type: 'container'; layoutStyle: LayoutStyleType; children: Array<LayoutNode | CompositeNode | LeafNode>; title?: string; colSpan?: number; data?: UnifiedContentItem; }
+
+// --- THE BUILDER CLASS ---
+class ContentBuilder {
+  private root: CompositeNode;
+  private currentContainer: CompositeNode;
+  private stack: CompositeNode[] = [];
+
+  constructor(id: string, layoutStyle: LayoutStyleType = 'column', title?: string, data?: UnifiedContentItem) {
+    this.root = { id, type: 'container', layoutStyle, title, children: [], data };
+    this.currentContainer = this.root;
+    this.stack.push(this.root);
+  }
+
+  // Add a sub-section (Container)
+  addContainer(id: string, layoutStyle: LayoutStyleType, title?: string, data?: UnifiedContentItem): ContentBuilder {
+    const newContainer: CompositeNode = { id, type: 'container', layoutStyle, title, children: [], data };
+    this.currentContainer.children.push(newContainer);
+    this.stack.push(this.currentContainer); // Save previous parent
+    this.currentContainer = newContainer;   // Move context to new container
+    return this;
+  }
+
+  // Add a leaf node (Item)
+  addItem(item: UnifiedContentItem): ContentBuilder {
+    const leaf: LeafNode = { id: `leaf-${item.id}`, type: 'item', data: item };
+    this.currentContainer.children.push(leaf);
+    return this;
+  }
+
+  // Go back up one level
+  up(): ContentBuilder {
+    if (this.stack.length > 0) {
+      this.currentContainer = this.stack.pop()!;
+    }
+    return this;
+  }
+
+  // Build and return root
+  build(): CompositeNode {
+    return this.root;
+  }
 }
 
-interface LeafNode extends LayoutNode {
-  type: 'item';
-  data: UnifiedContentItem;
-}
+// --- 4.2 GENERATING HIERARCHICAL DATA USING BUILDER ---
 
-interface CompositeNode extends LayoutNode {
-  type: 'container';
-  layoutStyle: LayoutStyleType;
-  children: Array<LayoutNode | CompositeNode | LeafNode>;
-  title?: string;
-  colSpan?: number;
-  data?: UnifiedContentItem;
-}
+// Re-creating the Project Tree using Builder
+const PROJECTS_TREE = new ContentBuilder('proj-root', 'column', 'All Projects')
+  .addContainer('super-app', 'grid', 'E-Commerce Super App', { ...adaptProjectToUnified(MOCK_PROJECTS[0]), decorations: ['featured'] })
+    .addItem(adaptProjectToUnified(MOCK_PROJECTS[1])) // Sub: Dashboard
+    .addItem(adaptProjectToUnified(MOCK_PROJECTS[2])) // Sub: Mobile App
+  .up()
+  .addContainer('ai-chat', 'list', 'AI Chat System', { ...adaptProjectToUnified(MOCK_PROJECTS[3]), decorations: ['sponsor'] })
+    .addItem(adaptProjectToUnified(MOCK_PROJECTS[4])) // Sub: Socket Server
+  .build();
 
-// 4.2 MOCK HIERARCHICAL DATA (UPDATED WITH DECORATIONS)
+// Re-creating the Blog Tree using Builder
+const BLOGS_TREE = new ContentBuilder('blog-root', 'column', 'My Writings')
+  .addContainer('journey', 'timeline', 'Tech Journey', { ...adaptBlogToUnified(MOCK_BLOGS[0]), decorations: ['featured'] })
+    .addItem({ ...adaptArticleToUnified(MOCK_ARTICLES_FLAT[0]), title: 'First Framework I Learned' })
+    .addItem({ ...adaptProjectToUnified(MOCK_PROJECTS[0]), title: 'My First Big Failure' })
+  .up()
+  .addContainer('lifestyle', 'list', 'Lifestyle', adaptBlogToUnified(MOCK_BLOGS[1]))
+    .addItem({ ...adaptVideoToUnified(MOCK_VIDEOS[0]), title: 'Vlog: A Day in Life', decorations: ['new'] })
+  .build();
 
-const HIERARCHICAL_ARTICLES: CompositeNode[] = [
-  {
-    id: 'rsc-master',
-    type: 'container',
-    layoutStyle: 'grid', 
-    data: { ...adaptArticleToUnified(MOCK_ARTICLES_FLAT[0]), decorations: ['hot', 'popular'] }, // Decorated Article
-    children: [
-      { id: 'sub-1', type: 'item', data: { ...adaptBlogToUnified(MOCK_BLOGS[0]), type: 'blog', title: 'Why I moved to RSC (Blog Log)' } } as LeafNode,
-      { id: 'sub-2', type: 'item', data: { ...adaptVideoToUnified(MOCK_VIDEOS[0]), type: 'video', title: 'Video Demo: RSC in Action' } } as LeafNode,
-    ]
-  },
-  {
-    id: 'ts-master',
-    type: 'container',
-    layoutStyle: 'list',
-    data: adaptArticleToUnified(MOCK_ARTICLES_FLAT[1]),
-    children: [
-      { id: 'sub-3', type: 'item', data: { ...adaptProjectToUnified(MOCK_PROJECTS[1]), type: 'article', title: 'Utility Types Cheatsheet', decorations: ['new'] } } as LeafNode
-    ]
-  }
-];
+// Re-creating the Articles Tree using Builder
+const ARTICLES_TREE = new ContentBuilder('art-root', 'grid', 'Knowledge Base')
+  .addContainer('rsc-master', 'grid', 'RSC Mastery', { ...adaptArticleToUnified(MOCK_ARTICLES_FLAT[0]), decorations: ['hot'] })
+    .addItem({ ...adaptBlogToUnified(MOCK_BLOGS[0]), title: 'Why I moved to RSC' })
+    .addItem({ ...adaptVideoToUnified(MOCK_VIDEOS[0]), title: 'Video Demo' })
+  .up()
+  .addContainer('ts-master', 'list', 'TypeScript Zone', adaptArticleToUnified(MOCK_ARTICLES_FLAT[1]))
+    .addItem({ ...adaptProjectToUnified(MOCK_PROJECTS[1]), title: 'Utility Types' })
+  .build();
 
-const HIERARCHICAL_PROJECTS: CompositeNode[] = [
-  {
-    id: 'super-app',
-    type: 'container',
-    layoutStyle: 'grid',
-    data: adaptProjectToUnified(MOCK_PROJECTS[0]), // Inherits 'featured' decorator from adapter
-    children: [
-      { id: 'sub-p1', type: 'item', data: adaptProjectToUnified(MOCK_PROJECTS[1]) } as LeafNode,
-      { id: 'sub-p2', type: 'item', data: adaptProjectToUnified(MOCK_PROJECTS[2]) } as LeafNode
-    ]
-  },
-  {
-    id: 'ai-chat',
-    type: 'container',
-    layoutStyle: 'list',
-    data: { ...adaptProjectToUnified(MOCK_PROJECTS[3]), decorations: ['sponsor'] }, // Custom decoration
-    children: [
-       { id: 'sub-p3', type: 'item', data: adaptProjectToUnified(MOCK_PROJECTS[4]) } as LeafNode
-    ]
-  }
-];
 
-const HIERARCHICAL_BLOGS: CompositeNode[] = [
-  {
-    id: 'journey-main',
-    type: 'container',
-    layoutStyle: 'timeline',
-    data: { ...adaptBlogToUnified(MOCK_BLOGS[0]), decorations: ['featured'] },
-    children: [
-      { id: 'rel-b1', type: 'item', data: { ...adaptArticleToUnified(MOCK_ARTICLES_FLAT[0]), type: 'blog', title: 'First Framework I Learned' } } as LeafNode,
-      { id: 'rel-b2', type: 'item', data: { ...adaptProjectToUnified(MOCK_PROJECTS[0]), type: 'blog', title: 'My First Big Failure' } } as LeafNode
-    ]
-  },
-  {
-    id: 'coffee-life',
-    type: 'container',
-    layoutStyle: 'list',
-    data: adaptBlogToUnified(MOCK_BLOGS[1]),
-    children: [
-       { id: 'rel-b3', type: 'item', data: { ...adaptVideoToUnified(MOCK_VIDEOS[0]), type: 'video', title: 'Vlog: A Day in Life', decorations: ['new'] } } as LeafNode
-    ]
-  }
-];
-
-// 4.3 Interactive Recursive Renderer
+// 4.3 Interactive Recursive Renderer (UNCHANGED)
 const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: LayoutNode | CompositeNode | LeafNode, style: StyleFactory, labels: UILabels, level?: number }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLayout, setCurrentLayout] = useState<LayoutStyleType>('grid');
-
   const isComposite = (n: LayoutNode): n is CompositeNode => n.type === 'container';
   const hasChildren = isComposite(node) && node.children && node.children.length > 0;
   
-  useEffect(() => {
-    if (isComposite(node)) setCurrentLayout(node.layoutStyle);
-  }, [node]);
-
+  useEffect(() => { if (isComposite(node)) setCurrentLayout(node.layoutStyle); }, [node]);
   const contentItem = (node as any).data as UnifiedContentItem | undefined;
 
   const renderContentCard = () => {
     if (!contentItem && !isComposite(node)) return null;
-
-    // Plain Container Header (if no data)
     if (!contentItem && isComposite(node)) {
       return (
         <div className="flex items-center justify-between mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -391,16 +317,12 @@ const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: Layo
                 ))}
              </div>
              {hasChildren && (
-                <button onClick={() => setIsOpen(!isOpen)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-transform ${isOpen ? 'rotate-180' : ''}`}>
-                    <ChevronDown size={20} />
-                </button>
+                <button onClick={() => setIsOpen(!isOpen)} className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-transform ${isOpen ? 'rotate-180' : ''}`}><ChevronDown size={20} /></button>
              )}
           </div>
         </div>
       );
     }
-
-    // Interactive Card WITH DECORATOR APPLIED
     return (
       <ContentDecorator decorations={contentItem!.decorations} style={style}>
         <div className={`${style.getCardClass()} p-6`}>
@@ -410,28 +332,16 @@ const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: Layo
                <span className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={12}/> {contentItem!.date}</span>
              </div>
              {hasChildren && (
-               <button 
-                 onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-                 className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wider transition-colors ${style.name === 'Future' ? 'text-cyan-400' : 'text-blue-600 dark:text-blue-400'}`}
-               >
-                 {isOpen ? labels.actions.collapse : labels.actions.expand} ({isComposite(node) ? node.children.length : 0})
-                 <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+               <button onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }} className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wider transition-colors ${style.name === 'Future' ? 'text-cyan-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                 {isOpen ? labels.actions.collapse : labels.actions.expand} ({isComposite(node) ? node.children.length : 0}) <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                </button>
              )}
           </div>
-          <h3 className={`text-2xl font-bold mb-2 cursor-pointer hover:underline ${style.name === 'Future' ? 'text-cyan-400' : 'text-gray-900 dark:text-gray-100'}`}>
-             {contentItem!.title}
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3 leading-relaxed">
-             {contentItem!.description}
-          </p>
+          <h3 className={`text-2xl font-bold mb-2 cursor-pointer hover:underline ${style.name === 'Future' ? 'text-cyan-400' : 'text-gray-900 dark:text-gray-100'}`}>{contentItem!.title}</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3 leading-relaxed">{contentItem!.description}</p>
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
-             <div className="flex gap-2">
-               {contentItem!.meta && contentItem!.meta.slice(0, 3).map((tag, i) => <span key={i} className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">#{tag}</span>)}
-             </div>
-             <button className={style.getButtonClass('text')}>
-               {labels.actions.readMore} <ChevronRight size={14} className="inline ml-1"/>
-             </button>
+             <div className="flex gap-2">{contentItem!.meta && contentItem!.meta.slice(0, 3).map((tag, i) => <span key={i} className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">#{tag}</span>)}</div>
+             <button className={style.getButtonClass('text')}>{labels.actions.readMore} <ChevronRight size={14} className="inline ml-1"/></button>
           </div>
         </div>
       </ContentDecorator>
@@ -443,14 +353,11 @@ const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: Layo
     useEffect(() => { if (!contentItem && isComposite(node)) setIsOpen(true); }, []);
     const shouldRender = contentItem ? isOpen : (isOpen || true);
     if (!shouldRender) return null;
-
     return (
       <div className={`${style.getContainerClass(currentLayout)} animate-in fade-in slide-in-from-top-4 duration-300`}>
         {contentItem && (
           <div className="flex justify-between items-center mb-4 px-2">
-             <span className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2">
-               <Layers size={14}/> {labels.actions.related}
-             </span>
+             <span className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2"><Layers size={14}/> {labels.actions.related}</span>
              <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 rounded p-0.5">
                 {(['grid', 'list', 'timeline'] as LayoutStyleType[]).map(l => (
                   <button key={l} onClick={() => setCurrentLayout(l)} className={`p-1.5 rounded text-xs transition-all ${currentLayout === l ? 'bg-white dark:bg-gray-600 shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`} title={l}>
@@ -460,11 +367,7 @@ const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: Layo
              </div>
           </div>
         )}
-        <div className={
-          currentLayout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 
-          currentLayout === 'list' ? 'flex flex-col space-y-4' : 
-          currentLayout === 'timeline' ? `border-l-2 ${style.name === 'Future' ? 'border-cyan-500' : 'border-gray-300'} ml-2 pl-4 space-y-6` : 'flex flex-col gap-4'
-        }>
+        <div className={currentLayout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : currentLayout === 'list' ? 'flex flex-col space-y-4' : currentLayout === 'timeline' ? `border-l-2 ${style.name === 'Future' ? 'border-cyan-500' : 'border-gray-300'} ml-2 pl-4 space-y-6` : 'flex flex-col gap-4'}>
            {node.children.map((child, idx) => (
              <div key={child.id} className={currentLayout === 'timeline' ? 'relative' : ''}>
                 {currentLayout === 'timeline' && <div className={`absolute -left-[23px] top-6 h-3 w-3 rounded-full border-2 ${style.name === 'Future' ? 'border-black bg-cyan-500' : 'border-white bg-gray-400'} shadow-sm`} />}
@@ -475,16 +378,11 @@ const InteractiveContentNode = ({ node, style, labels, level = 0 }: { node: Layo
       </div>
     );
   };
-
-  return (
-    <div className={`w-full ${level > 0 ? 'mb-0' : 'mb-8'}`}>
-      {renderContentCard()}
-      {renderChildren()}
-    </div>
-  );
+  return (<div className={`w-full ${level > 0 ? 'mb-0' : 'mb-8'}`}>{renderContentCard()}{renderChildren()}</div>);
 };
 
-// --- 5. EXISTING LAYOUT SYSTEM (UNCHANGED for UnifiedFeed) ---
+// --- 5. LAYOUT SYSTEM & HELPERS (UNCHANGED) ---
+// (Re-declaring for completeness if needed by other components, but relying on previous context mostly)
 type LayoutType = 'grid' | 'list' | 'timeline';
 interface GenericLayoutProps<T> { items: T[]; renderItem: (item: T, layout: LayoutType, style: StyleFactory, labels: UILabels) => React.ReactNode; getDate?: (item: T) => string; currentStyle: StyleFactory; labels: UILabels; }
 const GridLayout = <T,>({ items, renderItem, currentStyle, labels }: GenericLayoutProps<T>) => (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{items.map((item, index) => <div key={index} className="h-full">{renderItem(item, 'grid', currentStyle, labels)}</div>)}</div>);
@@ -512,29 +410,32 @@ const ArticlesSection = ({ currentStyle, labels }: { currentStyle: StyleFactory,
       <h2 className={currentStyle.getSectionTitleClass()}>{labels.sections.articles}</h2>
       <p className="text-gray-500 mt-2">{labels.sections.articlesDesc}</p>
     </div>
-    <div className="space-y-4">{HIERARCHICAL_ARTICLES.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
+    {/* Use the built tree */}
+    <div className="space-y-4">{ARTICLES_TREE.children.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
   </div>
 );
 
-// Updated Projects Section (Now Hierarchical)
+// Updated Projects Section (Now Hierarchical & Built with Builder)
 const ProjectsSection = ({ currentStyle, labels }: { currentStyle: StyleFactory, labels: UILabels }) => (
   <div className={`py-12 px-4 max-w-7xl mx-auto`}>
     <div className="mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
       <h2 className={currentStyle.getSectionTitleClass()}>{labels.sections.projects}</h2>
       <p className="text-gray-500 mt-2">{labels.sections.projectsDesc}</p>
     </div>
-    <div className="space-y-4">{HIERARCHICAL_PROJECTS.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
+    {/* Use the built tree */}
+    <div className="space-y-4">{PROJECTS_TREE.children.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
   </div>
 );
 
-// Updated Blog Section (Now Hierarchical)
+// Updated Blog Section (Now Hierarchical & Built with Builder)
 const BlogSection = ({ currentStyle, labels }: { currentStyle: StyleFactory, labels: UILabels }) => (
   <div className={`py-12 px-4 max-w-7xl mx-auto`}>
     <div className="mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
       <h2 className={currentStyle.getSectionTitleClass()}>{labels.sections.blog}</h2>
       <p className="text-gray-500 mt-2">{labels.sections.blogDesc}</p>
     </div>
-    <div className="space-y-4">{HIERARCHICAL_BLOGS.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
+    {/* Use the built tree */}
+    <div className="space-y-4">{BLOGS_TREE.children.map((node) => <InteractiveContentNode key={node.id} node={node} style={currentStyle} labels={labels} />)}</div>
   </div>
 );
 
@@ -581,10 +482,10 @@ const DocsSection = ({ currentStyle, labels }: { currentStyle: StyleFactory, lab
 
 const UnifiedFeedSection = ({ currentStyle, labels }: { currentStyle: StyleFactory, labels: UILabels }) => {
   const [layout, setLayout] = useState<LayoutType>('grid');
+  // Just flattening data for feed for now, though could use tree
   const unifiedItems = [...MOCK_PROJECTS.map(adaptProjectToUnified), ...MOCK_BLOGS.map(adaptBlogToUnified), ...MOCK_VIDEOS.map(adaptVideoToUnified)].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const renderItem = (item: UnifiedContentItem, currentLayout: LayoutType, style: StyleFactory, labels: UILabels) => {
     const isList = currentLayout === 'list';
-    // Use Decorator for Unified Feed as well
     return (
       <ContentDecorator decorations={item.decorations} style={style}>
         <div className={`${style.getCardClass()} h-full flex ${isList ? 'flex-row items-center' : 'flex-col'}`}>
