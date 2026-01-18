@@ -14,13 +14,17 @@ import {
   ChevronRight,
   Calendar,
   Tag,
-  LayoutGrid, // เพิ่ม icon สำหรับ Grid
-  List,       // เพิ่ม icon สำหรับ List
-  Clock,      // เพิ่ม icon สำหรับ Timeline
-  Columns     // เพิ่ม icon ทางเลือก
+  LayoutGrid, 
+  List,      
+  Clock,     
+  Columns,
+  PlayCircle, // เพิ่ม Icon สำหรับ Video
+  Rss         // เพิ่ม Icon สำหรับ Feed
 } from 'lucide-react';
 
 // --- 1. DATA STRUCTURE DEFINITIONS (TYPESCRIPT INTERFACES) ---
+
+// ... (Existing interfaces: Article, Blog, Doc, Project, Experience, Education, ResumeData) ...
 
 // สำหรับบทความเชิงลึก หรือ Technical Articles
 interface Article {
@@ -69,7 +73,7 @@ interface Project {
   liveUrl?: string;
   thumbnail: string;
   featured: boolean;
-  date: string; // เพิ่ม date เพื่อรองรับ Timeline
+  date: string; 
 }
 
 // สำหรับ CV / Resume
@@ -99,6 +103,33 @@ interface ResumeData {
     email: string;
     location: string;
   };
+}
+
+// === NEW: ADAPTER PATTERN STRUCTURES ===
+
+// 1.1 The "Adaptee" (External/Complex Data Source)
+// สมมติว่าเป็น data จาก YouTube API หรือแหล่งอื่นที่ structure ไม่เหมือนของเรา
+interface ExternalVideoData {
+  videoId: string;
+  headline: string;
+  descriptionSnippet: string;
+  published_timestamp: number; // ใช้ timestamp แทน date string
+  thumbnail_high: string;
+  views: number;
+  tags: string[];
+}
+
+// 1.2 The "Target" (Universal Interface)
+// นี่คือมาตรฐานกลางที่ UI ของเราเข้าใจ
+interface UnifiedContentItem {
+  id: string;
+  type: 'project' | 'blog' | 'video' | 'article';
+  title: string;
+  description: string;
+  date: string;
+  imageUrl?: string;
+  meta: string[]; // เก็บ tags หรือ tech stack
+  actionLink?: string;
 }
 
 // --- 2. MOCK DATA ---
@@ -209,6 +240,28 @@ const MOCK_PROJECTS: Project[] = [
   }
 ];
 
+// Mock External Video Data
+const MOCK_EXTERNAL_VIDEOS: ExternalVideoData[] = [
+  {
+    videoId: 'v123',
+    headline: 'Building a SaaS in 1 hour',
+    descriptionSnippet: 'Watch me code a full stack app from scratch using standard stack...',
+    published_timestamp: 1696118400000, // Oct 1 2023
+    thumbnail_high: 'yt-thumb-1.jpg',
+    views: 15000,
+    tags: ['Live Coding', 'SaaS']
+  },
+  {
+    videoId: 'v456',
+    headline: 'CSS Grid vs Flexbox',
+    descriptionSnippet: 'Which one should you use? A complete guide.',
+    published_timestamp: 1698796800000, // Nov 1 2023
+    thumbnail_high: 'yt-thumb-2.jpg',
+    views: 4200,
+    tags: ['CSS', 'Tutorial']
+  }
+];
+
 const MOCK_RESUME: ResumeData = {
   name: 'Alex Developer',
   title: 'Full Stack Engineer',
@@ -250,6 +303,50 @@ const MOCK_RESUME: ResumeData = {
     }
   ]
 };
+
+// === ADAPTER FUNCTIONS ===
+
+// Adapter for Project -> UnifiedContentItem
+const adaptProjectToUnified = (project: Project): UnifiedContentItem => ({
+  id: `proj-${project.id}`,
+  type: 'project',
+  title: project.title,
+  description: project.description,
+  date: project.date,
+  imageUrl: project.thumbnail,
+  meta: project.techStack,
+  actionLink: project.liveUrl || project.githubUrl
+});
+
+// Adapter for Blog -> UnifiedContentItem
+const adaptBlogToUnified = (blog: Blog): UnifiedContentItem => ({
+  id: `blog-${blog.id}`,
+  type: 'blog',
+  title: blog.title,
+  description: blog.summary,
+  date: blog.date,
+  imageUrl: blog.coverImage,
+  meta: [blog.category],
+  actionLink: `/blog/${blog.slug}`
+});
+
+// Adapter for ExternalVideoData -> UnifiedContentItem
+const adaptVideoToUnified = (video: ExternalVideoData): UnifiedContentItem => {
+  // Logic การแปลง Timestamp เป็น Date String
+  const date = new Date(video.published_timestamp).toISOString().split('T')[0];
+  
+  return {
+    id: `vid-${video.videoId}`,
+    type: 'video',
+    title: video.headline,
+    description: video.descriptionSnippet,
+    date: date,
+    imageUrl: video.thumbnail_high,
+    meta: [`${video.views.toLocaleString()} views`, ...video.tags],
+    actionLink: `https://youtube.com/watch?v=${video.videoId}`
+  };
+};
+
 
 // --- 3. LAYOUT SYSTEM (FACTORY & STRATEGY PATTERN) ---
 
@@ -377,6 +474,7 @@ const LayoutSwitcher = ({ current, onChange, options = ['grid', 'list', 'timelin
 const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => {
   const navItems = [
     { name: 'Home', id: 'home', icon: <User size={18} /> },
+    { name: 'Feed (Unified)', id: 'feed', icon: <Rss size={18} /> }, // New Unified Feed
     { name: 'Projects', id: 'projects', icon: <Code size={18} /> },
     { name: 'Articles', id: 'articles', icon: <BookOpen size={18} /> },
     { name: 'Blog', id: 'blog', icon: <FileText size={18} /> },
@@ -393,7 +491,7 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
               Alex.Dev
             </span>
           </div>
-          <div className="hidden md:flex space-x-8 items-center">
+          <div className="hidden lg:flex space-x-6 items-center">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -405,11 +503,11 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
                 }`}
               >
                 {item.icon}
-                <span>{item.name}</span>
+                <span className="whitespace-nowrap">{item.name}</span>
               </button>
             ))}
           </div>
-          <div className="md:hidden flex items-center">
+          <div className="lg:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -420,7 +518,7 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
         </div>
       </div>
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-b border-gray-200">
+        <div className="lg:hidden bg-white border-b border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navItems.map((item) => (
               <button
@@ -473,6 +571,106 @@ const HomeSection = () => (
     </div>
   </div>
 );
+
+// === NEW SECTION: Unified Feed Section Using Adapters ===
+const UnifiedFeedSection = () => {
+  const [layout, setLayout] = useState<LayoutType>('grid');
+
+  // 1. ADAPT DATA: แปลง data ทุกแหล่งให้เป็น Universal Format
+  const unifiedItems: UnifiedContentItem[] = [
+    ...MOCK_PROJECTS.map(adaptProjectToUnified),
+    ...MOCK_BLOGS.map(adaptBlogToUnified),
+    ...MOCK_EXTERNAL_VIDEOS.map(adaptVideoToUnified)
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date desc
+
+  // 2. RENDERER: UI ไม่ต้องรู้ว่า Data มาจากไหน รู้แค่ว่าเป็น UnifiedContentItem
+  const renderUnifiedItem = (item: UnifiedContentItem, currentLayout: LayoutType) => {
+    const isList = currentLayout === 'list';
+    
+    // Icon badge helper
+    const getTypeIcon = () => {
+      switch(item.type) {
+        case 'video': return <PlayCircle size={14} />;
+        case 'project': return <Code size={14} />;
+        case 'blog': return <FileText size={14} />;
+        default: return <FileText size={14} />;
+      }
+    };
+    
+    // Type Color helper
+    const getTypeColor = () => {
+      switch(item.type) {
+        case 'video': return 'bg-red-100 text-red-700';
+        case 'project': return 'bg-blue-100 text-blue-700';
+        case 'blog': return 'bg-green-100 text-green-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    };
+
+    return (
+      <div className={`group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex ${isList ? 'flex-row' : 'flex-col'}`}>
+        <div className={`${isList ? 'w-48 h-auto' : 'h-48'} bg-gray-100 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}>
+           {item.imageUrl && !item.imageUrl.startsWith('/') ? (
+             <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">Image: {item.imageUrl}</div>
+           ) : (
+             <span className="text-gray-400 font-medium">{item.type.toUpperCase()}</span>
+           )}
+           {/* Type Badge */}
+           <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${getTypeColor()}`}>
+             {getTypeIcon()}
+             <span className="uppercase tracking-wide">{item.type}</span>
+           </div>
+        </div>
+        
+        <div className="p-6 flex-1 flex flex-col">
+          <div className="flex items-center text-xs text-gray-400 mb-2 space-x-2">
+            <Calendar size={12} />
+            <span>{item.date}</span>
+          </div>
+          
+          <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition mb-2">
+            {item.title}
+          </h3>
+          <p className="text-gray-600 mb-4 line-clamp-2 flex-1">{item.description}</p>
+          
+          <div className="flex flex-wrap gap-2 mt-auto">
+            {item.meta.slice(0, 3).map((tag, i) => (
+              <span key={i} className="px-2 py-1 bg-gray-50 text-gray-600 text-xs font-medium rounded border border-gray-100">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="py-12 px-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 border-b border-gray-100 pb-4">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Rss className="text-blue-600" /> Unified Feed
+          </h2>
+          <p className="text-gray-600 mt-2">All content (Projects, Blogs, Videos) aggregated in one place using <span className="font-semibold text-blue-600">Adapter Pattern</span>.</p>
+        </div>
+        
+        <div className="mt-4 md:mt-0">
+          <LayoutSwitcher current={layout} onChange={setLayout} />
+        </div>
+      </div>
+      
+      {/* ส่งข้อมูลที่ Adapt แล้วเข้า Factory เหมือนเดิม (Reusability!) */}
+      <ContentLayoutFactory 
+        layout={layout} 
+        items={unifiedItems} 
+        renderItem={renderUnifiedItem}
+        getDate={(item) => item.date}
+      />
+    </div>
+  );
+};
+
 
 // Updated Projects Section using Factory
 const ProjectsSection = () => {
@@ -785,6 +983,7 @@ export default function PersonalWebsite() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return <HomeSection />;
+      case 'feed': return <UnifiedFeedSection />; // NEW
       case 'projects': return <ProjectsSection />;
       case 'articles': return <ArticlesSection />;
       case 'blog': return <BlogSection />;
