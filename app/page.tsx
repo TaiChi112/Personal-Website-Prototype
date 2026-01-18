@@ -1,5 +1,5 @@
-"use client"
-import { useState } from 'react';
+"use client";
+import React, { useState } from 'react';
 import { 
   BookOpen, 
   Code, 
@@ -13,7 +13,11 @@ import {
   ExternalLink, 
   ChevronRight,
   Calendar,
-  Tag
+  Tag,
+  LayoutGrid, // เพิ่ม icon สำหรับ Grid
+  List,       // เพิ่ม icon สำหรับ List
+  Clock,      // เพิ่ม icon สำหรับ Timeline
+  Columns     // เพิ่ม icon ทางเลือก
 } from 'lucide-react';
 
 // --- 1. DATA STRUCTURE DEFINITIONS (TYPESCRIPT INTERFACES) ---
@@ -24,7 +28,7 @@ interface Article {
   title: string;
   slug: string;
   excerpt: string;
-  content: string; // ในของจริงอาจจะเป็น Markdown หรือ HTML
+  content: string; 
   publishedAt: string;
   tags: string[];
   readTime: string;
@@ -45,12 +49,12 @@ interface Blog {
   coverImage?: string;
 }
 
-// สำหรับ Documentation (เช่น คู่มือการใช้งาน Library ที่เราเขียน)
+// สำหรับ Documentation 
 interface Doc {
   id: string;
   title: string;
   slug: string;
-  section: string; // ใช้จัดกลุ่มใน Sidebar
+  section: string; 
   content: string;
   lastUpdated: string;
 }
@@ -65,6 +69,7 @@ interface Project {
   liveUrl?: string;
   thumbnail: string;
   featured: boolean;
+  date: string; // เพิ่ม date เพื่อรองรับ Timeline
 }
 
 // สำหรับ CV / Resume
@@ -179,7 +184,8 @@ const MOCK_PROJECTS: Project[] = [
     githubUrl: 'https://github.com',
     liveUrl: 'https://vercel.com',
     thumbnail: 'dashboard-thumb',
-    featured: true
+    featured: true,
+    date: '2023-08-15'
   },
   {
     id: '2',
@@ -188,7 +194,8 @@ const MOCK_PROJECTS: Project[] = [
     techStack: ['React', 'Node.js', 'Socket.io'],
     githubUrl: 'https://github.com',
     thumbnail: 'ai-thumb',
-    featured: true
+    featured: true,
+    date: '2023-06-10'
   },
   {
     id: '3',
@@ -197,7 +204,8 @@ const MOCK_PROJECTS: Project[] = [
     techStack: ['Vue', 'Firebase'],
     githubUrl: 'https://github.com',
     thumbnail: 'finance-thumb',
-    featured: false
+    featured: false,
+    date: '2022-12-05'
   }
 ];
 
@@ -243,7 +251,127 @@ const MOCK_RESUME: ResumeData = {
   ]
 };
 
-// --- 3. COMPONENTS ---
+// --- 3. LAYOUT SYSTEM (FACTORY & STRATEGY PATTERN) ---
+
+// 3.1 Abstract Strategy Definition (Interface)
+type LayoutType = 'grid' | 'list' | 'timeline';
+
+interface GenericLayoutProps<T> {
+  items: T[];
+  renderItem: (item: T, layout: LayoutType) => React.ReactNode;
+  getDate?: (item: T) => string; // Optional helper for timeline
+}
+
+// 3.2 Concrete Strategies (Components)
+
+// Grid Layout Strategy
+const GridLayout = <T,>({ items, renderItem }: GenericLayoutProps<T>) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {items.map((item, index) => (
+        <div key={index} className="h-full">
+          {renderItem(item, 'grid')}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// List Layout Strategy
+const ListLayout = <T,>({ items, renderItem }: GenericLayoutProps<T>) => {
+  return (
+    <div className="flex flex-col space-y-6 max-w-4xl mx-auto">
+      {items.map((item, index) => (
+        <div key={index} className="w-full">
+          {renderItem(item, 'list')}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Timeline Layout Strategy
+const TimelineLayout = <T,>({ items, renderItem, getDate }: GenericLayoutProps<T>) => {
+  // Sort items by date desc if needed, assuming items are sorted or sort here
+  return (
+    <div className="max-w-3xl mx-auto border-l-2 border-blue-200 ml-4 md:ml-8 pl-8 py-4 space-y-12">
+      {items.map((item, index) => (
+        <div key={index} className="relative">
+          {/* Dot on timeline */}
+          <div className="absolute -left-[41px] top-0 h-5 w-5 rounded-full border-4 border-white bg-blue-600 shadow-sm" />
+          
+          {/* Date Label */}
+          {getDate && (
+             <span className="absolute -top-7 left-0 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+               {getDate(item)}
+             </span>
+          )}
+          
+          {renderItem(item, 'timeline')}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// 3.3 The Factory Component
+// This component acts as the Factory, instantiating the correct layout strategy
+const ContentLayoutFactory = <T,>({ 
+  layout, 
+  items, 
+  renderItem, 
+  getDate 
+}: { layout: LayoutType } & GenericLayoutProps<T>) => {
+  
+  // Register strategies here
+  const LayoutStrategies = {
+    grid: GridLayout,
+    list: ListLayout,
+    timeline: TimelineLayout
+  };
+
+  const SelectedLayout = LayoutStrategies[layout] || GridLayout;
+
+  // Render the selected strategy
+  return <SelectedLayout items={items} renderItem={renderItem} getDate={getDate} />;
+};
+
+// 3.4 Helper UI: Layout Switcher
+const LayoutSwitcher = ({ current, onChange, options = ['grid', 'list', 'timeline'] }: { current: LayoutType, onChange: (l: LayoutType) => void, options?: LayoutType[] }) => {
+  return (
+    <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 inline-flex mb-6">
+      {options.includes('grid') && (
+        <button 
+          onClick={() => onChange('grid')}
+          className={`p-2 rounded-md transition-all ${current === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+          title="Grid View"
+        >
+          <LayoutGrid size={18} />
+        </button>
+      )}
+      {options.includes('list') && (
+        <button 
+          onClick={() => onChange('list')}
+          className={`p-2 rounded-md transition-all ${current === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+          title="List View"
+        >
+          <List size={18} />
+        </button>
+      )}
+      {options.includes('timeline') && (
+        <button 
+          onClick={() => onChange('timeline')}
+          className={`p-2 rounded-md transition-all ${current === 'timeline' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+          title="Timeline View"
+        >
+          <Clock size={18} />
+        </button>
+      )}
+    </div>
+  );
+};
+
+// --- 4. COMPONENTS ---
 
 // Navigation Component
 const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => {
@@ -252,7 +380,7 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
     { name: 'Projects', id: 'projects', icon: <Code size={18} /> },
     { name: 'Articles', id: 'articles', icon: <BookOpen size={18} /> },
     { name: 'Blog', id: 'blog', icon: <FileText size={18} /> },
-    { name: 'Docs', id: 'docs', icon: <FileText size={18} /> }, // Using FileText as generic doc icon
+    { name: 'Docs', id: 'docs', icon: <FileText size={18} /> },
     { name: 'Resume', id: 'resume', icon: <Briefcase size={18} /> },
   ];
 
@@ -265,8 +393,6 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
               Alex.Dev
             </span>
           </div>
-          
-          {/* Desktop Nav */}
           <div className="hidden md:flex space-x-8 items-center">
             {navItems.map((item) => (
               <button
@@ -283,8 +409,6 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
               </button>
             ))}
           </div>
-
-          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -295,8 +419,6 @@ const Navbar = ({ activeTab, setActiveTab, isMenuOpen, setIsMenuOpen }: any) => 
           </div>
         </div>
       </div>
-
-      {/* Mobile Nav */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
@@ -352,111 +474,200 @@ const HomeSection = () => (
   </div>
 );
 
-const ProjectsSection = () => (
-  <div className="py-12 px-4 max-w-7xl mx-auto">
-    <div className="mb-10">
-      <h2 className="text-3xl font-bold text-gray-900">Featured Projects</h2>
-      <p className="text-gray-600 mt-2">Some of the things I've built recently.</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {MOCK_PROJECTS.map((project) => (
-        <div key={project.id} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="h-48 bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-400 font-medium">Project Image</span>
+// Updated Projects Section using Factory
+const ProjectsSection = () => {
+  const [layout, setLayout] = useState<LayoutType>('grid');
+
+  // Define how a single item looks (The "Card")
+  // Notice we can adapt the card style based on the layout provided
+  const renderProjectItem = (project: Project, currentLayout: LayoutType) => {
+    // If List view, we might want a horizontal card
+    const isList = currentLayout === 'list';
+    
+    return (
+      <div className={`group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full ${isList ? 'flex flex-col md:flex-row' : 'flex flex-col'}`}>
+        <div className={`${isList ? 'md:w-48 h-48 md:h-auto' : 'h-48'} bg-gray-100 flex items-center justify-center flex-shrink-0`}>
+          <span className="text-gray-400 font-medium">Image</span>
+        </div>
+        <div className="p-6 flex-1 flex flex-col">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition">{project.title}</h3>
+            <div className="flex space-x-2">
+              {project.githubUrl && <Github size={18} className="text-gray-400 hover:text-gray-900 cursor-pointer" />}
+              {project.liveUrl && <ExternalLink size={18} className="text-gray-400 hover:text-blue-600 cursor-pointer" />}
+            </div>
           </div>
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition">{project.title}</h3>
-              <div className="flex space-x-2">
-                {project.githubUrl && <Github size={18} className="text-gray-400 hover:text-gray-900 cursor-pointer" />}
-                {project.liveUrl && <ExternalLink size={18} className="text-gray-400 hover:text-blue-600 cursor-pointer" />}
-              </div>
-            </div>
-            <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
-            <div className="flex flex-wrap gap-2">
-              {project.techStack.map((tech) => (
-                <span key={tech} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
-                  {tech}
-                </span>
-              ))}
-            </div>
+          <p className="text-gray-600 mb-4 line-clamp-2 flex-1">{project.description}</p>
+          <div className="flex flex-wrap gap-2 mt-auto">
+            {project.techStack.map((tech) => (
+              <span key={tech} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                {tech}
+              </span>
+            ))}
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-);
+      </div>
+    );
+  };
 
-const ArticlesSection = () => (
-  <div className="py-12 px-4 max-w-4xl mx-auto">
-    <div className="mb-10 border-b border-gray-200 pb-8">
-      <h2 className="text-3xl font-bold text-gray-900">Technical Articles</h2>
-      <p className="text-gray-600 mt-2">Deep dives into code, patterns, and architecture.</p>
+  return (
+    <div className="py-12 px-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 border-b border-gray-100 pb-4">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Featured Projects</h2>
+          <p className="text-gray-600 mt-2">Some of the things I've built recently.</p>
+        </div>
+        
+        {/* Layout Switcher UI */}
+        <div className="mt-4 md:mt-0">
+          <span className="text-xs font-semibold text-gray-400 uppercase mr-2 tracking-wider">View:</span>
+          <LayoutSwitcher current={layout} onChange={setLayout} />
+        </div>
+      </div>
+      
+      {/* Factory Usage */}
+      <ContentLayoutFactory 
+        layout={layout} 
+        items={MOCK_PROJECTS} 
+        renderItem={renderProjectItem}
+        getDate={(item) => item.date}
+      />
     </div>
-    <div className="space-y-8">
-      {MOCK_ARTICLES.map((article) => (
-        <article key={article.id} className="flex flex-col group cursor-pointer">
-          <div className="flex items-center text-sm text-gray-500 mb-2 space-x-2">
-            <Calendar size={14} />
+  );
+};
+
+// Updated Articles Section using Factory
+const ArticlesSection = () => {
+  const [layout, setLayout] = useState<LayoutType>('list'); // Default to list for articles
+
+  const renderArticleItem = (article: Article, currentLayout: LayoutType) => {
+    const isGrid = currentLayout === 'grid';
+
+    if (isGrid) {
+      // Card style for Grid View
+      return (
+        <article className="bg-white border border-gray-200 p-6 rounded-xl hover:shadow-lg transition h-full flex flex-col">
+           <div className="flex items-center text-xs text-gray-500 mb-3 space-x-2">
+            <Calendar size={12} />
             <span>{article.publishedAt}</span>
-            <span>•</span>
-            <span>{article.readTime}</span>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
+          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 cursor-pointer">
             {article.title}
           </h3>
-          <p className="text-gray-600 mb-4 leading-relaxed">{article.excerpt}</p>
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              {article.tags.map(tag => (
-                <span key={tag} className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">#{tag}</span>
+          <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1">{article.excerpt}</p>
+          <div className="flex gap-2 flex-wrap">
+             {article.tags.slice(0, 2).map(tag => (
+                <span key={tag} className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">#{tag}</span>
               ))}
-            </div>
-            <span className="text-blue-600 font-medium text-sm flex items-center group-hover:translate-x-1 transition">
-              Read more <ChevronRight size={16} />
-            </span>
           </div>
         </article>
-      ))}
-    </div>
-  </div>
-);
+      )
+    }
 
-const BlogSection = () => (
-  <div className="py-12 px-4 max-w-4xl mx-auto">
-    <div className="mb-10 text-center">
-      <h2 className="text-3xl font-bold text-gray-900">Personal Blog</h2>
-      <p className="text-gray-600 mt-2">Thoughts, life updates, and behind the scenes.</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {MOCK_BLOGS.map((blog) => (
-        <div key={blog.id} className="bg-white rounded-lg p-6 border border-gray-200 hover:border-blue-300 transition cursor-pointer">
-          <div className="mb-4">
-             <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-               blog.category === 'Personal' ? 'bg-purple-100 text-purple-700' : 
-               blog.category === 'Lifestyle' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-             }`}>
-               {blog.category}
-             </span>
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">{blog.title}</h3>
-          <p className="text-gray-600 text-sm mb-4">{blog.summary}</p>
-          <span className="text-xs text-gray-400">{blog.date}</span>
+    // Default / List / Timeline style
+    return (
+      <article className="flex flex-col group cursor-pointer bg-white">
+        <div className="flex items-center text-sm text-gray-500 mb-2 space-x-2">
+          <Calendar size={14} />
+          <span>{article.publishedAt}</span>
+          <span>•</span>
+          <span>{article.readTime}</span>
         </div>
-      ))}
+        <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
+          {article.title}
+        </h3>
+        <p className="text-gray-600 mb-4 leading-relaxed">{article.excerpt}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            {article.tags.map(tag => (
+              <span key={tag} className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">#{tag}</span>
+            ))}
+          </div>
+          <span className="text-blue-600 font-medium text-sm flex items-center group-hover:translate-x-1 transition">
+            Read more <ChevronRight size={16} />
+          </span>
+        </div>
+      </article>
+    );
+  };
+
+  return (
+    <div className="py-12 px-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 border-b border-gray-200 pb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Technical Articles</h2>
+          <p className="text-gray-600 mt-2">Deep dives into code, patterns, and architecture.</p>
+        </div>
+        <div className="mt-4 md:mt-0">
+          <LayoutSwitcher current={layout} onChange={setLayout} options={['list', 'grid', 'timeline']} />
+        </div>
+      </div>
+      
+      <div className={layout === 'list' ? 'max-w-4xl mx-auto' : ''}>
+        <ContentLayoutFactory 
+          layout={layout} 
+          items={MOCK_ARTICLES} 
+          renderItem={renderArticleItem} 
+          getDate={(item) => item.publishedAt}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+// Updated Blog Section using Factory
+const BlogSection = () => {
+  const [layout, setLayout] = useState<LayoutType>('grid');
+
+  const renderBlogItem = (blog: Blog, currentLayout: LayoutType) => {
+    // Reuse similar card for list and grid, but let CSS container handle width
+    return (
+      <div className={`bg-white rounded-lg p-6 border border-gray-200 hover:border-blue-300 transition cursor-pointer h-full ${currentLayout === 'timeline' ? 'shadow-sm' : ''}`}>
+        <div className="mb-4">
+            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+              blog.category === 'Personal' ? 'bg-purple-100 text-purple-700' : 
+              blog.category === 'Lifestyle' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            }`}>
+              {blog.category}
+            </span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">{blog.title}</h3>
+        <p className="text-gray-600 text-sm mb-4">{blog.summary}</p>
+        <span className="text-xs text-gray-400">{blog.date}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-12 px-4 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-10 text-center md:text-left">
+        <div>
+           <h2 className="text-3xl font-bold text-gray-900">Personal Blog</h2>
+           <p className="text-gray-600 mt-2">Thoughts, life updates, and behind the scenes.</p>
+        </div>
+        <div className="mt-4 md:mt-0">
+          <LayoutSwitcher current={layout} onChange={setLayout} />
+        </div>
+      </div>
+      
+      <div className={layout === 'list' ? 'max-w-4xl mx-auto' : ''}>
+        <ContentLayoutFactory 
+          layout={layout} 
+          items={MOCK_BLOGS} 
+          renderItem={renderBlogItem}
+          getDate={(item) => item.date}
+        />
+      </div>
+    </div>
+  );
+};
 
 const DocsSection = () => {
   const [activeDoc, setActiveDoc] = useState(MOCK_DOCS[0]);
-  
-  // Group docs by section
   const sections = Array.from(new Set(MOCK_DOCS.map(d => d.section)));
 
   return (
     <div className="flex flex-col md:flex-row max-w-7xl mx-auto pt-8 min-h-[80vh]">
-      {/* Sidebar */}
       <div className="w-full md:w-64 flex-shrink-0 px-4 mb-8 md:mb-0 md:border-r border-gray-200">
         <h3 className="text-lg font-bold text-gray-900 mb-4 px-2">Documentation</h3>
         {sections.map(section => (
@@ -481,8 +692,6 @@ const DocsSection = () => {
           </div>
         ))}
       </div>
-
-      {/* Content */}
       <div className="flex-1 px-4 md:px-12">
         <div className="prose max-w-none">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">{activeDoc.title}</h1>
@@ -518,12 +727,10 @@ const ResumeSection = () => (
         <FileText size={16} /> Download PDF
       </button>
     </div>
-
     <div className="mb-8">
       <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide mb-4 border-b border-gray-100 pb-2">Summary</h3>
       <p className="text-gray-600 leading-relaxed">{MOCK_RESUME.summary}</p>
     </div>
-
     <div className="mb-8">
       <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide mb-4 border-b border-gray-100 pb-2">Experience</h3>
       <div className="space-y-8">
@@ -543,7 +750,6 @@ const ResumeSection = () => (
         ))}
       </div>
     </div>
-
     <div className="mb-8">
       <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide mb-4 border-b border-gray-100 pb-2">Skills</h3>
       <div className="flex flex-wrap gap-2">
@@ -554,7 +760,6 @@ const ResumeSection = () => (
         ))}
       </div>
     </div>
-
     <div>
       <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide mb-4 border-b border-gray-100 pb-2">Education</h3>
       {MOCK_RESUME.education.map(edu => (
