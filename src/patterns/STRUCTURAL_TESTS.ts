@@ -248,7 +248,7 @@ describe('Decorator Pattern - Feature Enhancement', () => {
   });
 
   it('should stack multiple decorators', () => {
-    let btn: any = new Button('Action');
+    let btn: Button | WithTooltip | WithAnimation = new Button('Action');
     btn = new WithTooltip(btn, 'Do action');
     btn = new WithAnimation(btn, 'fade-in');
 
@@ -381,7 +381,7 @@ describe('Proxy Pattern - Lazy Loading & Control', () => {
       'Test Image'
     );
 
-    expect((lazyImage as any).isLoaded()).toBe(false);
+    expect((lazyImage as LazyLoadingProxy).isLoaded()).toBe(false);
   });
 
   it('should load on first access', async () => {
@@ -391,7 +391,7 @@ describe('Proxy Pattern - Lazy Loading & Control', () => {
     );
 
     await lazyAPI.load();
-    expect((lazyAPI as any).isLoaded()).toBe(true);
+    expect((lazyAPI as LazyLoadingProxy).isLoaded()).toBe(true);
   });
 
   it('should cache data after load', () => {
@@ -412,16 +412,16 @@ describe('Proxy Pattern - Lazy Loading & Control', () => {
     cached.getData();
     cached.getData();
 
-    const stats = (cached as any).getAccessStats();
+    const stats = (cached as { getAccessStats(): { total: number; cacheHits: number } }).getAccessStats();
     expect(stats.total).toBe(3);
   });
 
   it('should clear cache', () => {
     const cached = new CachingProxy(new APIClient('/api/test'));
     cached.getData();
-    (cached as any).clearCache();
+    (cached as CachingProxy).clearCache();
 
-    const stats = (cached as any).getAccessStats();
+    const stats = (cached as CachingProxy).getAccessStats();
     expect(stats.cacheHits).toBe(0);
   });
 
@@ -473,7 +473,7 @@ describe('Flyweight Pattern - Object Sharing', () => {
     cardFactory.getFlyweight('article');
     cardFactory.getFlyweight('feature');
 
-    const stats = (cardFactory as any).getStats();
+    const stats = (cardFactory as { getStats(): { cached: number } }).getStats();
     expect(stats.cached).toBe(3);
   });
 
