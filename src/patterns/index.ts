@@ -100,13 +100,29 @@ export {
 // ====================================
 
 export {
+  type ReactComponent,
+  type HTMLElement,
+  type CustomComponent,
   type UnifiedComponent,
-  type ComponentMetadata,
   ReactComponentAdapter,
   HTMLElementAdapter,
   CustomComponentAdapter,
   ComponentAdapterFactory,
   ComponentManager,
+  type Blog,
+  type ExternalVideoData,
+  type Article,
+  type Doc,
+  type PodcastEpisode,
+  type DecorationType,
+  ProjectAdapter,
+  BlogAdapter,
+  VideoAdapter,
+  ArticleAdapter,
+  DocAdapter,
+  PodcastAdapter,
+  ContentAdapterFactory,
+  ContentManager,
   demoAdapterPattern,
 } from './07_adapter_ui_components';
 
