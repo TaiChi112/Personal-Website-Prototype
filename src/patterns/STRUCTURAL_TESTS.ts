@@ -6,17 +6,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 import {
-  ReactComponentAdapter,
-  HTMLElementAdapter,
-  CustomComponentAdapter,
-  ComponentAdapterFactory,
-  ComponentManager,
   ThemePalette,
-  ModernTheme,
-  MinimalTheme,
-  FutureTheme,
-  NavItem,
-  NavGroup,
   NavTreeBuilder,
   Navigator,
   Button,
@@ -26,7 +16,6 @@ import {
   WithErrorBoundary,
   WithAnimation,
   EnhancedComponentFactory,
-  ComponentRegistry,
   ApplicationFacade,
   LazyLoadingProxy,
   CachingProxy,
@@ -36,8 +25,8 @@ import {
   CardFlyweightFactory,
   BadgeFlyweightFactory,
   CardRenderer,
-  CardFlyweight,
-  BadgeFlyweight,
+  ComponentManager,
+  ComponentAdapterFactory,
 } from './index';
 
 // ====================================
@@ -109,7 +98,7 @@ describe('Adapter Pattern - UI Components', () => {
 
   it('should throw on unknown component type', () => {
     expect(() => {
-      ComponentAdapterFactory.createAdapter({ unknown: true });
+      ComponentAdapterFactory.createAdapter({ unknown: true }, 'test-id');
     }).toThrow();
   });
 });
