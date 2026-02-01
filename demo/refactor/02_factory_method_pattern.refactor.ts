@@ -28,24 +28,17 @@ class GridLayout implements ILayout {
 // ==========================================
 abstract class LayoutFactory {
     abstract createLayout(): ILayout;
-    abstract getLayoutType(): string;  // ✅ แต่ละ Factory บอก type ของตัวเอง
 }
 
 class ListLayoutFactory extends LayoutFactory {
     createLayout(): ILayout {
         return new ListLayout();
     }
-    getLayoutType(): string {
-        return "list";
-    }
 }
 
 class GridLayoutFactory extends LayoutFactory {
     createLayout(): ILayout {
         return new GridLayout();
-    }
-    getLayoutType(): string {
-        return "grid";
     }
 }
 
