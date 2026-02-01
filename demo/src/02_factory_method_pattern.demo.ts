@@ -17,12 +17,6 @@ class GridLayout implements ILayout {
     }
 }
 
-class TimelineLayout implements ILayout {
-    render(): void {
-        console.log("📅 Rendering in Timeline Layout");
-    }
-}
-
 // ==========================================
 // 2. Factory Method Pattern (Creator)
 // ==========================================
@@ -49,15 +43,6 @@ class GridLayoutFactory extends LayoutFactory {
     }
 }
 
-class TimelineLayoutFactory extends LayoutFactory {
-    createLayout(): ILayout {
-        return new TimelineLayout();
-    }
-    getLayoutType(): string {
-        return "timeline";
-    }
-}
-
 // ==========================================
 // 3. Factory Registry (Central Registry)
 // ==========================================
@@ -77,10 +62,6 @@ class LayoutFactoryRegistry {
     // ✅ Factory register ตัวเอง
     public register(factory: LayoutFactory): void {
         const type = factory.getLayoutType();
-        if (this.factories.has(type)) {
-            console.log(`⚠️ Factory for "${type}" already registered. Skipping.`);
-            return;
-        }
         this.factories.set(type, factory);
         console.log(`✓ Registered: ${type} layout`);
     }
@@ -109,18 +90,8 @@ class Page {
         this.currentType = defaultType;
 
         // Initial render
-        const factory = this.registry.getFactory(defaultType) ?? this.getFallbackFactory();
-        this.currentLayout = factory.createLayout();
-        this.currentType = factory.getLayoutType();
-    }
-
-    private getFallbackFactory(): LayoutFactory {
-        const available = this.registry.getAvailableTypes();
-        if (available.length === 0) {
-            throw new Error("No layout factories registered.");
-        }
-        const fallbackType = available[0];
-        return this.registry.getFactory(fallbackType)!;
+        const factory = this.registry.getFactory(defaultType);
+        this.currentLayout = factory!.createLayout();
     }
 
     // ✅ ไม่ต้อง hard-code type แล้ว - รับ string ธรรมดา
@@ -176,7 +147,6 @@ class User {
 const registry = LayoutFactoryRegistry.getInstance();
 registry.register(new ListLayoutFactory());
 registry.register(new GridLayoutFactory());
-registry.register(new TimelineLayoutFactory());
 
 // ==========================================
 // 7. CLIENT CODE - Usage Demo
