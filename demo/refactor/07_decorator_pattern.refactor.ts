@@ -1,72 +1,83 @@
-// 1. Component Interface (สัญญาหลัก)
-// ทุกอย่างทั้ง Content จริง และ Decorator ต้องมี method นี้
+// Component
 interface IContentDisplay {
     render(): string;
-    getPrice(): number; // สมมติว่า Content มีราคา (Sponsor อาจแพงขึ้น)
 }
 
-// 2. Concrete Component (เนื้อหาหลักของเรา)
+// Concrete Component
 class SimpleArticle implements IContentDisplay {
-    constructor(private title: string, private price: number) { }
+    constructor(private title: string) { }
 
     render(): string {
         return `Article: ${this.title}`;
     }
-
-    getPrice(): number {
-        return this.price;
+}
+class SimpleBlog implements IContentDisplay {
+    constructor(private title: string) { }
+    render(): string {
+        return `Blog Post: ${this.title}`;
     }
 }
-
-// 3. Base Decorator (ตัวห่อหุ้มพื้นฐาน)
-// หัวใจสำคัญ: มันต้อง Implement Interface เดียวกับตัวแม่ และ "ถือ" ตัวแม่ไว้ข้างใน
+// Decorator
 abstract class ContentDecorator implements IContentDisplay {
-    protected component: IContentDisplay;
+    private content: IContentDisplay;
 
-    constructor(component: IContentDisplay) {
-        this.component = component;
+    constructor(content: IContentDisplay) {
+        this.content = content;
     }
 
     render(): string {
-        return this.component.render();
-    }
-
-    getPrice(): number {
-        return this.component.getPrice();
+        return this.content.render();
     }
 }
 
-// 4. Concrete Decorators (ตัวเพิ่ม Feature จริงๆ)
-
-// ตัวแปะป้าย NEW
+// Concrete Decorator
 class NewBadgeDecorator extends ContentDecorator {
     render(): string {
-        // เพิ่มพฤติกรรม: ใส่ [NEW] ไว้ข้างหน้า แล้วค่อยเรียกของเดิม
-        return `[NEW!] ${super.render()}`;
+        return `[NEW]! ${super.render()}`;
     }
 }
-
-// ตัวแปะป้าย SPONSORED
 class SponsoredDecorator extends ContentDecorator {
     render(): string {
-        // เพิ่มพฤติกรรม: ใส่สี หรือ ข้อความต่อท้าย
         return `[SPONSORED] ${super.render()} (Sponsored by AI Corp)`;
     }
-
-    // เพิ่มพฤติกรรม: ถ้าเป็น Sponsor ราคาโฆษณาอาจจะเพิ่มขึ้น
-    getPrice(): number {
-        return super.getPrice() + 100;
+}
+class PopularDecorator extends ContentDecorator {
+    render(): string {
+        return `[🔥 Popular Post!] ${super.render()}`;
     }
 }
 
-let myPost: IContentDisplay = new SimpleArticle("Design Patterns 101", 50);
+// Client
+let myPost: IContentDisplay = new SimpleArticle("Design Patterns 101");
 console.log(myPost.render());
 
 // Wrap ด้วย Decorators
 myPost = new NewBadgeDecorator(myPost);
 console.log(myPost.render());
-
 myPost = new SponsoredDecorator(myPost);
+console.log(myPost.render());   
+myPost = new PopularDecorator(myPost);
 console.log(myPost.render());
 
-console.log(`Total Value: ${myPost.getPrice()}`);
+let myBlog: IContentDisplay = new SimpleBlog("Understanding Decorators in TypeScript");
+console.log(myBlog.render());
+myBlog = new SponsoredDecorator(myBlog);
+console.log(myBlog.render());
+myBlog = new NewBadgeDecorator(myBlog);
+console.log(myBlog.render());
+
+
+console.log()
+console.log()
+console.log()
+const MyArt1:IContentDisplay = new SimpleArticle("Something Aritcle")
+console.log(MyArt1.render())
+
+const NewArt = new NewBadgeDecorator(MyArt1)
+console.log(NewArt.render())
+
+const SponsoredNewArt = new SponsoredDecorator(NewArt)
+console.log(SponsoredNewArt.render())
+
+const NewArtPopular = new PopularDecorator(NewArt)
+console.log(NewArtPopular.render())
