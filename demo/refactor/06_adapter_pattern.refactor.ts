@@ -1,28 +1,26 @@
-// --- 1. The Target Interface (มาตรฐานกลางที่ UI ต้องการ) ---
-// เน้น core ที่จำเป็นต่อการแสดงผล (ลด complexity)
+// Target
 interface IStandardContent {
     getTitle(): string;
     getBody(): string;
+    getAuthor(): string;
+    getSummary(): string;
+    getTags(): string[];
     getMetadata(): string;
 }
-
-// --- 2. The Adaptees (ข้อมูลดิบที่มี Interface ต่างกัน) ---
-
-// Case A: Article (มีข้อมูลเยอะ)
+// Adaptee
 class Article {
     public headline: string;
     public textBody: string;
+    public author: string;
+    public publishedAt: Date;
     public comments: { user: string; text: string }[];
     public relatedTopics: string[];
 
-    constructor(
-        headline: string,
-        textBody: string,
-        comments: { user: string; text: string }[],
-        relatedTopics: string[]
-    ) {
+    constructor(headline: string, textBody: string, author: string, publishedAt: Date, comments: { user: string; text: string }[], relatedTopics: string[]) {
         this.headline = headline;
         this.textBody = textBody;
+        this.author = author;
+        this.publishedAt = publishedAt;
         this.comments = comments;
         this.relatedTopics = relatedTopics;
     }
@@ -32,22 +30,22 @@ class Article {
     }
 }
 
-// Case B: Blog (ข้อมูลน้อย)
 class Blog {
     public topic: string;
     public content: string;
+    public author: string;
+    public publishedAt: Date;
     public tags: string[];
 
-    constructor(topic: string, content: string, tags: string[]) {
+    constructor(topic: string, content: string, author: string, publishedAt: Date, tags: string[]) {
         this.topic = topic;
         this.content = content;
+        this.author = author;
+        this.publishedAt = publishedAt;
         this.tags = tags;
     }
 }
-
-// --- 3. The Adapters (ตัวแปลง) ---
-// หลักการ: Implement Target -> รับ Adaptee -> แปลงค่ากลับมา
-
+// Adapter
 class ArticleAdapter implements IStandardContent {
     private article: Article;
 
@@ -63,8 +61,20 @@ class ArticleAdapter implements IStandardContent {
         return this.article.textBody;
     }
 
+    getAuthor(): string {
+        return this.article.author;
+    }
+
+    getSummary(): string {
+        return this.article.textBody.slice(0, 80).trim() + "...";
+    }
+
+    getTags(): string[] {
+        return this.article.relatedTopics;
+    }
+
     getMetadata(): string {
-        return `Comments: ${this.article.getCommentCount()} | Topics: ${this.article.relatedTopics.join(", ")}`;
+        return `Comments: ${this.article.getCommentCount()} | Published: ${this.article.publishedAt.toDateString()}`;
     }
 }
 
@@ -83,12 +93,24 @@ class BlogAdapter implements IStandardContent {
         return this.blog.content;
     }
 
+    getAuthor(): string {
+        return this.blog.author;
+    }
+
+    getSummary(): string {
+        return this.blog.content.slice(0, 80).trim() + "...";
+    }
+
+    getTags(): string[] {
+        return this.blog.tags;
+    }
+
     getMetadata(): string {
-        return `Tags: ${this.blog.tags.join(", ")}`;
+        return `Published: ${this.blog.publishedAt.toDateString()} | Tags: ${this.blog.tags.join(", ")}`;
     }
 }
 
-// --- 4. Client (User) ---
+// Client
 class User {
     id: string;
     name: string;
@@ -105,17 +127,20 @@ class User {
             console.log("================================");
             console.log("Title:", content.getTitle());
             console.log("Body:", content.getBody());
+            console.log("Author:", content.getAuthor());
+            console.log("Summary:", content.getSummary());
+            console.log("Tags:", content.getTags().join(", "));
             console.log("Metadata:", content.getMetadata());
         });
     }
 }
 
-// --- Usage ---
-
 // Case A: Article (complex)
 const myArticle = new Article(
     "Design Patterns 101: Adapter Pattern Explained",
     "The Adapter Pattern is a structural design pattern that lets you convert the interface of a class into another interface clients expect...",
+    "John Doe",
+    new Date("2025-07-20"),
     [
         { user: "User1", text: "Great explanation!" },
         { user: "User2", text: "Very helpful" },
@@ -128,6 +153,8 @@ const myArticle = new Article(
 const myBlog = new Blog(
     "My Coding Journey Today",
     "Today I learned about the Adapter Pattern. It's amazing how we can make incompatible interfaces work together!",
+    "Alice",
+    new Date("2025-08-01"),
     ["Diary", "Learning", "TypeScript"]
 );
 
@@ -139,3 +166,10 @@ const contentList: IStandardContent[] = [
 
 const user1 = new User("u1", "Alice");
 user1.getInfo(contentList);
+
+/*
+    target: IStandardContent
+    adaptee: Article, Blog
+    adapter: ArticleAdapter, BlogAdapter
+    client: User
+*/
