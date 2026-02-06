@@ -1,14 +1,12 @@
-// --- 1. The Complex Subsystems (ระบบหลังบ้านที่ยุ่งเหยิง) ---
-
+// Context
 interface Article {
     title: string;
     content: string;
     authorId: string;
     tags?: string[];
-    coverImage?: string;
 }
 
-// Subsystem 1: Authentication
+// Subsystem 
 class AuthService {
     isAuthenticated(userId: string): boolean {
         console.log(`[Auth] Checking user ${userId}...`);
@@ -20,8 +18,6 @@ class AuthService {
         return "granted";
     }
 }
-
-// Subsystem 2: Content Validation
 class ContentValidator {
     hasBadWords(content: string): boolean {
         console.log("[Validator] Scanning for bad words...");
@@ -34,19 +30,6 @@ class ContentValidator {
     }
 }
 
-// Subsystem 3: Image Processing
-class ImageService {
-    optimizeCoverImage(imageUrl?: string): string {
-        if (!imageUrl) {
-            console.log("[Image] Using default cover image...");
-            return "default-cover.jpg";
-        }
-        console.log(`[Image] Optimizing cover image: ${imageUrl}...`);
-        return `optimized-${imageUrl}`;
-    }
-}
-
-// Subsystem 5: Database
 class DatabaseService {
     save(article: Article): void {
         console.log("[DB] Saving article to database...");
@@ -54,7 +37,6 @@ class DatabaseService {
     }
 }
 
-// Subsystem 7: Notification
 class NotificationService {
     notifySubscribers(title: string): void {
         console.log(`[Email] Sending alert to subscribers...`);
@@ -65,38 +47,30 @@ class NotificationService {
         console.log(`[Slack] Posting to team channel: @${authorId} published '${title}'`);
     }
 }
-
-
-// --- 2. The Facade (พระเอกของเรา) ---
-// หน้าที่: รวบรวม 8 Subsystems ที่ซับซ้อนมาจัดการใน Method เดียว!
-
+// Facade
 class ArticlePublishingFacade {
     private auth: AuthService;
     private validator: ContentValidator;
-    private imageService: ImageService;
     private db: DatabaseService;
     private notify: NotificationService;
 
     constructor() {
         this.auth = new AuthService();
         this.validator = new ContentValidator();
-        this.imageService = new ImageService();
         this.db = new DatabaseService();
         this.notify = new NotificationService();
     }
 
-    // 🎯 Client เรียกแค่ method นี้บรรทัดเดียว จบ!
-    // ภายในจัดการ 8 subsystems ให้อัตโนมัติ
     public publishArticle(article: Article): void {
         console.log(`Publishing Article: "${article.title}"`);
         console.log()
-        // Step 1: Authentication & Authorization
+        // Authentication & Authorization
         if (!this.auth.isAuthenticated(article.authorId)) {
             throw new Error("❌ Unauthorized!");
         }
         this.auth.getUserPermission(article.authorId);
 
-        // Step 2: Content Validation
+        // Content Validation
         if (this.validator.hasBadWords(article.content)) {
             throw new Error("❌ Content contains inappropriate words.");
         }
@@ -104,14 +78,10 @@ class ArticlePublishingFacade {
             throw new Error("❌ Content too short!");
         }
 
-        // Step 3: Image Processing
-        const optimizedImage = this.imageService.optimizeCoverImage(article.coverImage);
-        article.coverImage = optimizedImage;
-
-        // Step 5: Save to Database
+        // Save to Database
         this.db.save(article);
 
-        // Step 7: Send Notifications
+        // Send Notifications
         this.notify.notifySubscribers(article.title);
         this.notify.notifySlack(article.authorId, article.title);
 
@@ -119,9 +89,7 @@ class ArticlePublishingFacade {
         console.log()
     }
 }
-
-// --- 3. User Class (ผู้ใช้งานที่มี Article) ---
-
+// Client
 class User {
     id: string;
     name: string;
@@ -133,57 +101,35 @@ class User {
         this.articles = [];
     }
 
-    // User เพิ่ม article ใหม่
-    createArticle(title: string, content: string, tags?: string[], coverImage?: string): Article {
+    createArticle(title: string, content: string, tags?: string[]): Article {
         const article: Article = {
             title,
             content,
             authorId: this.id,
             tags,
-            coverImage
         };
         this.articles.push(article);
         console.log(`📝 ${this.name} created article: "${title}"`);
         return article;
     }
 
-    // 🎯 User ใช้ Facade เพื่อ publish article (ไม่ต้องกังวลเรื่องซับซ้อน)
-    publishArticle(article: Article, facade: ArticlePublishingFacade): void {
+    published(article: Article, facade: ArticlePublishingFacade): void {
         console.log(`\n👤 ${this.name} is publishing...`);
         facade.publishArticle(article);
     }
 }
 
-// --- 4. Client Code (ผู้ใช้งานจริง) ---
-
-// 🎭 Without Facade (ถ้าไม่มี Facade ชีวิตจะลำบากแบบนี้):
-// const auth = new AuthService();
-// const validator = new ContentValidator();
-// const imageService = new ImageService();
-// const seo = new SEOService();
-// ... ต้องจัดการทุก subsystem เอง 😱
-
-// ✨ With Facade (ชีวิตง่ายขึ้นทันที - เรียกแค่บรรทัดเดียว!):
-
-// สร้าง Facade ตัวเดียวที่จัดการทุกอย่าง
 const publishingSystem = new ArticlePublishingFacade();
 
-// สร้าง User และ Articles
 const Admain = new User("user_admin", "Admin");
 
-// Alice สร้าง article ที่มี cover image และ tags
 const article1 = Admain.createArticle(
     "Mastering the Facade Pattern",
     "The Facade Pattern is a structural design pattern that provides a simplified interface to a complex subsystem. It hides the complexity and makes the system easier to use.",
     ["Design Patterns", "Architecture", "Best Practices"],
-    "facade-cover.jpg"
 );
 
-// 🚀 User ใช้ Facade publish (เรียกง่ายมาก ไม่ต้องจัดการ subsystems เอง)
-Admain.publishArticle(article1, publishingSystem);
+Admain.published(article1, publishingSystem);
 
 console.log("📊 Summary:");
 console.log(`- Admain has ${Admain.articles.length} article(s)`);
-
-// 💡 Key Point: User ไม่ต้องรู้ว่า Facade ทำอะไรข้างใน
-//    แค่เรียก publishArticle() เดียว ก็ได้ผลลัพธ์ครบทุกอย่าง!
