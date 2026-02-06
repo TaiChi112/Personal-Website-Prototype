@@ -70,14 +70,15 @@ console.log(myBlog.render());
 console.log()
 console.log()
 console.log()
-const MyArt1:IContentDisplay = new SimpleArticle("Something Aritcle")
-console.log(MyArt1.render())
 
-const NewArt = new NewBadgeDecorator(MyArt1)
-console.log(NewArt.render())
+const SimpleArticle1:IContentDisplay = new SimpleArticle("Something Aritcle")
+console.log(SimpleArticle1.render())
 
-const SponsoredNewArt = new SponsoredDecorator(NewArt)
-console.log(SponsoredNewArt.render())
+const NewSimpleArticle1 = new NewBadgeDecorator(SimpleArticle1)
+console.log(NewSimpleArticle1.render())
 
-const NewArtPopular = new PopularDecorator(NewArt)
-console.log(NewArtPopular.render())
+const SponsoredNewArticle1 = new SponsoredDecorator(NewSimpleArticle1)
+console.log(SponsoredNewArticle1.render())
+
+const PopularNewSimpleArticle1 = new PopularDecorator(NewSimpleArticle1)
+console.log(PopularNewSimpleArticle1.render())
