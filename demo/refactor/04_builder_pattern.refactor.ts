@@ -1,35 +1,32 @@
-// ==========================================
-// 1. Product (ผลลัพธ์)
-// ==========================================
+// Product
 class WebPage {
-    // ใช้ Array เก็บ parts เพื่อความยืดหยุ่น (เผื่อมี Sidebar, Widget)
-    private parts: string[] = [];
+    public header?: string;
+    public contents: string[] = [];
+    public footer?: string;
+    public metadata?: { title: string; description: string };
 
-    public add(part: string): void {
-        this.parts.push(part);
+    public render(): string {
+        const parts: string[] = [];
+        if (this.header) parts.push(this.header);
+        parts.push(...this.contents);
+        if (this.footer) parts.push(this.footer);
+        return parts.join('\n');
     }
 
-    public show(): string {
-        return this.parts.join('\n');
+    public validate(): boolean {
+        return this.contents.length > 0; // At least one content section required
     }
 }
-
-// ==========================================
-// 2. Builder Interface (สัญญาการก่อสร้าง)
-// ==========================================
+// Builder
 interface IPageBuilder {
-    // ใช้ Fluent Interface (return this) เพื่อให้ Chain method ได้
     reset(): this;
     setHeader(title: string): this;
     addContent(content: string): this;
     setFooter(text: string): this;
+    setMetadata(title: string, description: string): this;
     build(): WebPage;
 }
-
-// ==========================================
-// 3. Concrete Builder (ช่างก่อสร้างตัวจริง)
-// ==========================================
-// สังเกต: เรายุบ HomePageBuilder, AboutBuilder เหลือตัวเดียวที่รับค่าได้
+// Concrete Builder
 class HTMLPageBuilder implements IPageBuilder {
     private page: WebPage;
 
@@ -43,35 +40,83 @@ class HTMLPageBuilder implements IPageBuilder {
     }
 
     setHeader(title: string): this {
-        // Logic การห่อ HTML tag อยู่ที่นี่ (Encapsulation)
-        this.page.add(`<header><h1>${title}</h1></header>`);
+        this.page.header = `<header><h1>${title}</h1></header>`;
         return this;
     }
 
     addContent(content: string): this {
-        this.page.add(`<main>${content}</main>`);
+        this.page.contents.push(`<main>${content}</main>`);
         return this;
     }
 
     setFooter(text: string): this {
-        this.page.add(`<footer>${text}</footer>`);
+        this.page.footer = `<footer>${text}</footer>`;
+        return this;
+    }
+
+    setMetadata(title: string, description: string): this {
+        this.page.metadata = { title, description };
         return this;
     }
 
     build(): WebPage {
+        if (!this.page.validate()) {
+            throw new Error('HTMLPageBuilder: Cannot build page without content');
+        }
         const result = this.page;
-        this.reset(); // Reset พร้อมสำหรับงานต่อไปทันที
+        this.reset();
         return result;
     }
 }
 
-// ==========================================
-// 4. Director (สมุดรวมสูตรมาตรฐาน)
-// ==========================================
-class PageDirector {
-    // ไม่เก็บ state ของ builder แต่รับเข้ามาเป็น parameter ในแต่ละสูตรแทน
-    // เพื่อให้ Director เป็น Stateless (Reusable สุดๆ)
+// Concrete Builder 2: Markdown
+class MarkdownPageBuilder implements IPageBuilder {
+    private page: WebPage;
 
+    constructor() {
+        this.page = new WebPage();
+    }
+
+    reset(): this {
+        this.page = new WebPage();
+        return this;
+    }
+
+    setHeader(title: string): this {
+        this.page.header = `# ${title}\n`;
+        return this;
+    }
+
+    addContent(content: string): this {
+        this.page.contents.push(content);
+        return this;
+    }
+
+    setFooter(text: string): this {
+        this.page.footer = `\n---\n*${text}*`;
+        return this;
+    }
+
+    setMetadata(title: string, description: string): this {
+        this.page.metadata = { title, description };
+        // Add as YAML front matter
+        const frontMatter = `---\ntitle: ${title}\ndescription: ${description}\n---\n`;
+        this.page.contents.unshift(frontMatter);
+        return this;
+    }
+
+    build(): WebPage {
+        if (!this.page.validate()) {
+            throw new Error('MarkdownPageBuilder: Cannot build page without content');
+        }
+        const result = this.page;
+        this.reset();
+        return result;
+    }
+}
+
+// Director
+class PageDirector {
     public makeHomePage(builder: IPageBuilder): void {
         builder.reset()
             .setHeader("Welcome Home")
@@ -83,34 +128,72 @@ class PageDirector {
         builder.reset()
             .setHeader("About Us")
             .addContent("We are a CS student team.");
-        // สังเกต: About Page สูตรนี้ไม่มี Footer ก็ทำได้!
     }
 
     public makeMinimalPage(builder: IPageBuilder, msg: string): void {
         builder.reset()
             .addContent(msg);
     }
+
+    public makeDocumentationPage(builder: IPageBuilder): void {
+        builder.reset()
+            .setMetadata('API Documentation', 'Complete API reference guide')
+            .setHeader('API Documentation')
+            .addContent('## Getting Started')
+            .addContent('Follow these steps to integrate our API...')
+            .addContent('## Authentication')
+            .addContent('Use Bearer token for authentication.')
+            .setFooter('Last updated: Feb 2026');
+    }
 }
-
-// ==========================================
-// 5. Client Usage (การใช้งาน)
-// ==========================================
-
-const builder = new HTMLPageBuilder();
+// Client Code
+const htmlBuilder = new HTMLPageBuilder();
+const mdBuilder = new MarkdownPageBuilder();
 const director = new PageDirector();
 
-console.log("--- 1. Build Standard Home Page ---");
-director.makeHomePage(builder);
-console.log(builder.build().show());
+console.log("=== HTML BUILDER EXAMPLES ===");
 
-console.log("\n--- 2. Build Custom About Page (No Footer) ---");
-director.makeAboutPage(builder);
-console.log(builder.build().show());
+console.log("\n--- 1. HTML: Standard Home Page ---");
+director.makeHomePage(htmlBuilder);
+const htmlHome = htmlBuilder.build();
+console.log(htmlHome.render());
 
-console.log("\n--- 3. Build Without Director (Manual / Custom) ---");
-// Builder เก่งพอที่จะให้ User ใช้งานเองได้ (Flexible)
-builder.reset()
+console.log("\n--- 2. HTML: Custom About Page (No Footer) ---");
+director.makeAboutPage(htmlBuilder);
+const htmlAbout = htmlBuilder.build();
+console.log(htmlAbout.render());
+
+console.log("\n--- 3. HTML: Manual Build with Metadata ---");
+htmlBuilder.reset()
+    .setMetadata('Landing Page', 'Special promotion page')
     .setHeader("My Custom Landing")
     .addContent("Special Promotion!")
-    .addContent("Click Here!");
-console.log(builder.build().show());
+    .addContent("Click Here!")
+    .setFooter("Limited time offer");
+const htmlCustom = htmlBuilder.build();
+console.log(htmlCustom.render());
+console.log('Metadata:', htmlCustom.metadata);
+
+console.log("\n\n=== MARKDOWN BUILDER EXAMPLES ===");
+
+console.log("\n--- 4. Markdown: Documentation Page ---");
+director.makeDocumentationPage(mdBuilder);
+const mdDoc = mdBuilder.build();
+console.log(mdDoc.render());
+
+console.log("\n--- 5. Markdown: README Style ---");
+mdBuilder.reset()
+    .setHeader('Project README')
+    .addContent('## Installation\n```bash\nnpm install\n```')
+    .addContent('## Usage\nSimply import and use the builder pattern.')
+    .setFooter('MIT License');
+const mdReadme = mdBuilder.build();
+console.log(mdReadme.render());
+
+// Error handling demonstration
+console.log("\n\n=== ERROR HANDLING ===");
+try {
+    htmlBuilder.reset().build(); // No content - should throw error
+} catch (error) {
+    console.log('✓ Validation works:', (error as Error).message);
+}
