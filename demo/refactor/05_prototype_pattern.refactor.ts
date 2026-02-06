@@ -1,33 +1,44 @@
-// 1. Interface Segregation: กำหนดสัญญาว่า Object นี้ต้อง Clone ได้
+// Prototype
 interface Prototype<T> {
     clone(): T;
 }
 
-// 2. Concrete Class: ตัวเอกสาร SDLC ของเรา
+// Concrete Prototype
 class SDLCProjectDocument implements Prototype<SDLCProjectDocument> {
-    public title: string;
-    public sections: string[]; // สมมติว่าเป็นเนื้อหาที่เยอะมากๆ
-    public techStack: string[];
+    public name: string = "";
+    public version: string = "";
+    public lastUpdated: Date = new Date();
+    public problemStatement: string = "";
+    public stakeholders: string[] = [];
+    public functionalRequirements: string[] = []
+    public techStack: string[] = [];
+    public description: string = "";
 
-    constructor(title: string, sections: string[], techStack: string[]) {
-        this.title = title;
-        this.sections = sections;
+    constructor(name: string, version: string, lastUpdated: Date, problemStatement: string, stakeholders: string[], functionalRequirements: string[], techStack: string[], description: string) {
+        this.name = name;
+        this.version = version;
+        this.lastUpdated = lastUpdated;
+        this.problemStatement = problemStatement;
+        this.stakeholders = stakeholders;
+        this.functionalRequirements = functionalRequirements;
         this.techStack = techStack;
-        // Simulation: Complex initialization logic (e.g., fetching templates from DB)
-        console.log(`[System] Initializing heavy document: ${this.title}`);
+        this.description = description;
+        console.log(`[System] Initializing heavy document: ${this.name}`);
     }
 
-    // 3. The Implementation of Prototype Pattern
     public clone(): SDLCProjectDocument {
-        // Deep Copy Logic: จำเป็นมากสำหรับ Array/Object เพื่อไม่ให้ Reference ชนกัน
-        const clonedSections = [...this.sections];
+        const clonedSections = [...this.functionalRequirements];
         const clonedTechStack = [...this.techStack];
 
-        // Return new instance with copied data
         return new SDLCProjectDocument(
-            `Copy of ${this.title}`,
+            `Copy of ${this.name}`,
+            this.version,
+            this.lastUpdated,
+            this.problemStatement,
+            [...this.stakeholders],
             clonedSections,
-            clonedTechStack
+            clonedTechStack,
+            this.description
         );
     }
 
@@ -36,38 +47,50 @@ class SDLCProjectDocument implements Prototype<SDLCProjectDocument> {
     }
 
     public toString(): string {
-        return `Doc: ${this.title} | Stack: [${this.techStack.join(', ')}] | Content Length: ${this.sections.length}`;
+        return `Doc: ${this.name} | Stack: [${this.techStack.join(', ')}] | Content Length: ${this.functionalRequirements.length}`;
     }
 }
-
-// --- Client Usage (Software Engineering Context) ---
 
 // Step 1: สร้าง Master Template (Costly Operation)
 const masterTemplate = new SDLCProjectDocument(
     "Standard Web App SDLC",
+    "1.0.0",
+    new Date(),
+    "Standard web application development lifecycle",
+    ["Project Manager", "Developers", "QA"],
     ["Intro", "Requirement Analysis", "System Design", "Testing"],
     ["Java", "Spring Boot", "MySQL"] // Default Stack
+    , "This document outlines the standard phases and best practices for web application development."
 );
 
 console.log("--- Original ---");
 console.log(masterTemplate.toString());
-
 console.log()
-// Step 2: Clone และปรับแก้ (Efficient Operation)
-// ตรงนี้คือสิ่งที่คุณต้องการ: Clone content เดิม -> เปลี่ยน Tech Stack
-const nodeProject = masterTemplate.clone();
-nodeProject.setTechStack(["Node.js", "Express", "MongoDB"]);
 
-// Step 3: Clone อีกโปรเจกต์
-const pythonProject = masterTemplate.clone();
-pythonProject.setTechStack(["Python", "Django", "PostgreSQL"]);
+// const nodeProject = masterTemplate.clone();
+// nodeProject.setTechStack(["Node.js", "Express", "Elysia", "MongoDB"]);
 
-console.log()
-console.log("--- Cloned & Modified ---");
-console.log(nodeProject.toString());
-console.log(pythonProject.toString());
+// const pythonProject = masterTemplate.clone();
+// pythonProject.setTechStack(["Python", "Django", "PostgreSQL"]);
+// console.log()
 
-console.log()
-// Verify: ต้นฉบับต้องไม่เปลี่ยน (Proof of Deep Copy)
-console.log("--- Verify Original ---");
-console.log(masterTemplate.toString());
+// console.log("--- Cloned & Modified ---");
+// console.log(nodeProject.toString());
+// console.log(pythonProject.toString());
+// console.log()
+
+// // Verify: ต้นฉบับต้องไม่เปลี่ยน (Proof of Deep Copy)
+// console.log("--- Verify Original ---");
+// console.log(masterTemplate.toString());
+
+const projectList: SDLCProjectDocument[] = []
+
+for (let i = 1; i <= 5; i++) {
+    const project = masterTemplate.clone();
+    project.setTechStack([`TechStack-${i}-A`, `TechStack-${i}-B`]);
+    projectList.push(project);
+}
+
+for (const proj of projectList) {
+    console.log(proj.toString());
+}
