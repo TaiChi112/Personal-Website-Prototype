@@ -49,10 +49,10 @@ classDiagram
         +applyTheme(factory ThemeFactory) void
     }
     
-    ModernCard <|.. ICard : implements
-    ClassicCard <|.. ICard : implements
-    ModernButton <|.. IButton : implements
-    ClassicButton <|.. IButton : implements
+    ModernCard ..|> ICard : implements
+    ClassicCard ..|> ICard : implements
+    ModernButton ..|> IButton : implements
+    ClassicButton ..|> IButton : implements
     ThemeFactory <|.. ModernThemeFactory : implements
     ThemeFactory <|.. ClassicThemeFactory : implements
     ModernThemeFactory ..> ModernCard : creates
@@ -62,17 +62,10 @@ classDiagram
     User --> ThemeFactory : uses
 ```
 ## Table of Relation
-| component/web style | modern       | classic       |
+| web style/component | card         | button        |
 | ------------------- | ------------ | ------------- |
-| card                | ModernCard   | ClassicCard   |
-| button              | ModernButton | ClassicButton |
-
-## Abstract Factory Component
-- Product: ICard,IButton
-- Concrete: ModernCard,ModernButton,ClassicCard,ClassicButton
-- Factory: ThemeFactory
-- Concrete Factory: ModernThemeFactory,ClassicThemeFactory
-- Client: User
+| modern              | ModernCard   | ClassicCard   |
+| classic             | ModernButton | ClassicButton |
 
 ## Crucial Part of Code
 
@@ -90,8 +83,17 @@ applyTheme(factory: ThemeFactory): void {
 ```
 - จะได้ Card เเบบไหน ขึ้นอยู่กับว่าเราใช้ Factory อะไรในการสร้าง
 ```ts
-createCard(): ICard { return new SomeConcreteCreator(); }
+createCard(): ICard { return new ClassicCard(); }
 ```
+
+## Abstract Factory Component
+- Product: ICard,IButton
+- Concrete: ModernCard,ModernButton,ClassicCard,ClassicButton
+- Factory: ThemeFactory
+- Concrete Factory: ModernThemeFactory,ClassicThemeFactory
+- Client: User
+
+
 
 ## Planning in the future scale
 - ตอนนี้เรามีเเค่ 2 theme คือ modern เเละ classic ถ้าในอนาคต เราอยากเพิ่ม theme ใหม่ เช่น Dark Theme หรือ Light Theme เราเเค่สร้าง Concrete Factory เเละ Concrete Products ใหม่ โดยไม่ต้องไปยุ่งกับโค้ดเดิมของ Client หรือ Factory อื่นๆ
@@ -104,3 +106,5 @@ createCard(): ICard { return new SomeConcreteCreator(); }
       - โรงเเรมบนฟ้า,โรงเเรมใต้ดิน,โรงเเรมบนดวงจันทร์,โรงเเรมในน้ำ,โรงเเรมบนต้นไม้,โรงเเรมในทะเลทราย,โรงเเรมในป่า,โรงเเรมในหิมะ,โรงเเรมบนอวกาศ
       - โรงพยาบาลบนฟ้า,โรงพยาบาลใต้ดิน,โรงพยาบาลบนดวงจันทร์,โรงพยาบาลในน้ำ,โรงพยาบาลบนต้นไม้,โรงพยาบาลในทะเลทราย,โรงพยาบาลในป่า,โรงพยาบาลในหิมะ,โรงพยาบาลบนอวกาศ
       - สุสานบนฟ้า,สุสานใต้ดิน,สุสานบนดวงจันทร์,สุสานในน้ำ,สุสานบนต้นไม้,สุสานในทะเลทราย,สุสานในป่า,สุสานในหิมะ,สุสานบนอวกาศ
+
+![Alt text](./asset/abstract_factory.png "Abstract Factory Pattern")
