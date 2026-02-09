@@ -70,3 +70,5 @@ classDiagram
         console.log(`   - Who: ${names.join(", ")}`);
     }
 ```
+
+![Alt text](./asset/singleton.png "Singleton Pattern")
