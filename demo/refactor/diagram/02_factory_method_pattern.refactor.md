@@ -45,7 +45,7 @@ classDiagram
 - จะได้ Layout อะไรขึ้นอยู่กับว่าเราใช้ Factory อะไรในการสร้าง เพื่อใช้คุณสมบัติเเบบ Polymorphism
 ```ts
     createLayout(): ILayout {
-        return new SomeLayout();
+        return new ListLayout();
     }
 ```
 
@@ -69,4 +69,4 @@ classDiagram
 - ตอนนี้เรามี Layout เเค่ 2 แบบ List กับ Grid เเต่ถ้าในอนาคต เราอยากเพิ่ม Layout ใหม่ เช่น Masonry Layout หรือ Carousel Layout เราเเค่สร้าง Concrete Creator เเละ Concrete Product ใหม่ โดยไม่ต้องไปยุ่งกับโค้ดเดิมของ Client หรือ Creator อื่นๆ
 - เอา content ต่างๆ มา render เเละต้องเป็น content ที่ผ่านการใช้ adapter pattern มาเเล้วทำให้ factory method ไม่ต้องสนใจว่า content จริงๆ เป็นอะไร เเค่สร้าง layout เเล้ว render content ที่ได้มา
 
-
+![Alt text](./asset/factory_method.png "Factory Method Pattern")
